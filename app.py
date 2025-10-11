@@ -800,36 +800,50 @@ Incluye:
 
 if st.button("🧮 Construir XLSForm", use_container_width=True, disabled=not st.session_state.preguntas):
     try:
+        # Verifica que no haya nombres duplicados
         names = [q["name"] for q in st.session_state.preguntas]
         if len(names) != len(set(names)):
             st.error("Hay 'name' duplicados. Edita las preguntas para que cada 'name' sea único.")
         else:
+            # ✅ Corrección aplicada aquí: no se usa st.sidebar.session_state.get()
             df_survey, df_choices, df_settings = construir_xlsform(
                 st.session_state.preguntas,
                 form_title=(f"Encuesta Comercio – {delegacion.strip()}" if delegacion.strip() else "Encuesta Comercio"),
-                idioma=st.sidebar.session_state.get("idioma","es") if hasattr(st.sidebar, "session_state") else "es",
-                version=(st.sidebar.session_state.get("version") if hasattr(st.sidebar, "session_state") else "") or datetime.now().strftime("%Y%m%d%H%M"),
+                idioma=idioma,
+                version=(version.strip() or datetime.now().strftime("%Y%m%d%H%M")),
                 reglas_vis=st.session_state.reglas_visibilidad,
                 reglas_fin=st.session_state.reglas_finalizar
             )
-            st.success("XLSForm construido. Vista previa:")
-            c1, c2, c3 = st.columns(3)
-            c1.markdown("**Hoja: survey**");   c1.dataframe(df_survey,  use_container_width=True, hide_index=True)
-            c2.markdown("**Hoja: choices**");  c2.dataframe(df_choices, use_container_width=True, hide_index=True)
-            c3.markdown("**Hoja: settings**"); c3.dataframe(df_settings,use_container_width=True, hide_index=True)
 
-            nombre_archivo = slugify_name(f"Encuesta Comercio – {delegacion.strip()}" if delegacion.strip() else "Encuesta Comercio") + "_xlsform.xlsx"
+            st.success("✅ XLSForm construido correctamente. Vista previa:")
+            c1, c2, c3 = st.columns(3)
+            c1.markdown("**Hoja: survey**")
+            c1.dataframe(df_survey, use_container_width=True, hide_index=True)
+            c2.markdown("**Hoja: choices**")
+            c2.dataframe(df_choices, use_container_width=True, hide_index=True)
+            c3.markdown("**Hoja: settings**")
+            c3.dataframe(df_settings, use_container_width=True, hide_index=True)
+
+            # Nombre de archivo generado automáticamente
+            nombre_archivo = slugify_name(form_title) + "_xlsform.xlsx"
+
+            # Descarga del XLSForm
             descargar_excel_xlsform(df_survey, df_choices, df_settings, nombre_archivo)
 
+            # Descarga del logo si existe
             if st.session_state.get("_logo_bytes"):
-                st.download_button("📥 Descargar logo para carpeta media",
-                                   data=st.session_state["_logo_bytes"],
-                                   file_name=logo_media_name, mime="image/png",
-                                   use_container_width=True)
+                st.download_button(
+                    "📥 Descargar logo para carpeta media",
+                    data=st.session_state["_logo_bytes"],
+                    file_name=logo_media_name,
+                    mime="image/png",
+                    use_container_width=True
+                )
 
             st.info("Publica en Survey123 Connect: crea encuesta desde archivo, copia el logo a `media/` y publica.")
     except Exception as e:
         st.error(f"Ocurrió un error al generar el XLSForm: {e}")
+
 
 # ------------------------------------------------------------------------------------------
 # Exportar Word y PDF — helpers visuales
@@ -1110,5 +1124,6 @@ if col_p.button("Generar PDF editable"):
     export_pdf_editable_form(st.session_state.preguntas,
                              form_title=(f"Encuesta Comercio – {delegacion.strip()}" if delegacion.strip() else "Encuesta Comercio"),
                              intro=INTRO_COMERCIO, reglas_vis=st.session_state.reglas_visibilidad)
+
 
 
