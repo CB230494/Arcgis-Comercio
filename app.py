@@ -713,13 +713,13 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
 
         # Constraints placeholders C/D/B
         if q["name"] == "canton":
-            row["constraint"] = ". != '__pick_canton__'"
+            row["constraint"] = ". != '__Primero_Elija_un_Canton__'"
             row["constraint_message"] = "Seleccione un cantón válido."
         if q["name"] == "distrito":
-            row["constraint"] = ". != '__pick_distrito__'"
+            row["constraint"] = ". != '__Elija_un_Distrito__'"
             row["constraint_message"] = "Seleccione un distrito válido."
         if q["name"] == "barrio":
-            row["constraint"] = ". != '__pick_barrio__'"
+            row["constraint"] = ". != '__Elija_un_Barrio__'"
             row["constraint_message"] = "Seleccione un barrio válido."
 
         survey_rows.append(row)
@@ -1124,6 +1124,7 @@ if col_p.button("Generar PDF editable"):
     export_pdf_editable_form(st.session_state.preguntas,
                              form_title=(f"Encuesta Comercio – {delegacion.strip()}" if delegacion.strip() else "Encuesta Comercio"),
                              intro=INTRO_COMERCIO, reglas_vis=st.session_state.reglas_visibilidad)
+
 
 
 
