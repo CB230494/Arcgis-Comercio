@@ -1,16 +1,22 @@
 # -*- coding: utf-8 -*-
 # ==========================================================================================
-# App: Encuesta COMERCIO → XLSForm para ArcGIS Survey123 (versión limpia)
+# App: Encuesta Comercio → XLSForm para ArcGIS Survey123 (versión limpia + páginas iniciales)
 # - Constructor completo (agregar/editar/ordenar/borrar)
-# - FIX: Edición estable por 'qid' (no depende del índice)
-# - Listas en cascada Cantón→Distrito (choice_filter) [CATÁLOGO MANUAL POR LOTES]
+# - Condicionales (relevant) + finalizar temprano
+# - Listas en cascada (choice_filter) Cantón→Distrito [CATÁLOGO MANUAL POR LOTES]
 # - Exportar/Importar proyecto (JSON)
-# - Exportar a XLSForm (survey/choices/settings) estilo pages
-#
-# PÁGINAS INCLUIDAS (SOLO):
-#   P1: Introducción (Comercio 2026) + logo
-#   P2: Consentimiento (bloques) + finaliza si NO acepta
-#   P3: Datos demográficos + intro de comercio + (6) Tipo de local comercial + Otro→texto
+# - Exportar a XLSForm (survey/choices/settings)
+# - PÁGINAS reales (style="pages"): Intro + Consentimiento + Demográficos + Percepción Comercio
+# - Portada con logo (media::image) y texto de introducción
+# - Consentimiento:
+#     - Texto en BLOQUES (notes separados) para que se vea ordenado en Survey123
+#     - Si marca "No" ⇒ NO muestra el resto de páginas y cae a una página final para enviar
+# - FIX REFLEJO DE EDICIÓN:
+#     - 'qid' estable por pregunta y el editor deja de depender del índice
+# - FIX MATRIZ (table-list): filas comparten MISMO list_name (list_override)
+# - FIX: Encabezado de la MATRIZ 9 editable en la app (Textos fijos)
+# - FIX: “No se observa / No se observan ...” en select_multiple son EXCLUSIVAS (si existieran)
+# - FIX: Nombre del archivo descargado usa el texto de “Delegación/Lugar” (no se queda pegado)
 # ==========================================================================================
 
 import re
@@ -24,7 +30,7 @@ import streamlit as st
 import pandas as pd
 
 # ------------------------------------------------------------------------------------------
-# Configuración
+# Configuración de la app
 # ------------------------------------------------------------------------------------------
 st.set_page_config(page_title="Encuesta Comercio → XLSForm (Survey123)", layout="wide")
 st.title("🏪 Encuesta Comercio → XLSForm para ArcGIS Survey123")
@@ -33,11 +39,12 @@ st.markdown("""
 Crea tu cuestionario y **exporta un XLSForm** listo para **ArcGIS Survey123**.
 
 Incluye:
+- Tipos: **text**, **integer/decimal**, **date**, **time**, **geopoint**, **select_one**, **select_multiple**.
 - **Constructor completo** (agregar, editar, ordenar, borrar) con condicionales.
-- **Listas en cascada** Cantón→Distrito (**catálogo manual por lotes**).
-- **Páginas** con navegación (`settings.style = pages`).
-- **Portada** con logo (`media::image`) e **introducción**.
-- **Consentimiento informado** (si NO acepta, la encuesta termina) con texto en bloques.
+- **Listas en cascada** **Cantón→Distrito** (**catálogo manual por lotes**).
+- **Páginas** con navegación **Siguiente/Anterior** (`settings.style = pages`).
+- **Portada** con **logo** (`media::image`) e **introducción**.
+- **Consentimiento informado** (si NO acepta, la encuesta termina) con texto ordenado por bloques.
 """)
 
 # ------------------------------------------------------------------------------------------
@@ -107,6 +114,11 @@ def xlsform_or_expr(conds):
         return conds[0]
     return "(" + " or ".join(conds) + ")"
 
+def xlsform_not(expr):
+    if not expr:
+        return None
+    return f"not({expr})"
+
 def build_relevant_expr(rules_for_target: List[Dict]):
     or_parts = []
     for r in rules_for_target:
@@ -129,7 +141,7 @@ def build_relevant_expr(rules_for_target: List[Dict]):
     return xlsform_or_expr(or_parts)
 
 # ------------------------------------------------------------------------------------------
-# FIX: qid estable por pregunta
+# FIX REFLEJO DE EDICIÓN: ID estable por pregunta (qid) + editor por qid
 # ------------------------------------------------------------------------------------------
 def ensure_qid(q: Dict) -> Dict:
     if "qid" not in q or not q["qid"]:
@@ -143,7 +155,7 @@ def q_index_by_qid(qid: str) -> int:
     return -1
 
 # ------------------------------------------------------------------------------------------
-# Estado base
+# Estado base (session_state)
 # ------------------------------------------------------------------------------------------
 if "preguntas" not in st.session_state:
     st.session_state.preguntas = []
@@ -151,11 +163,27 @@ if "reglas_visibilidad" not in st.session_state:
     st.session_state.reglas_visibilidad = []
 if "reglas_finalizar" not in st.session_state:
     st.session_state.reglas_finalizar = []
+
+# ✅ Textos fijos editables (matriz 9)
+if "textos_fijos" not in st.session_state:
+    st.session_state.textos_fijos = {
+        "matriz_9_label": "9. En términos de seguridad, indique qué tan seguros percibe los siguientes espacios alrededor de su comercio."
+    }
+
+# Editor: solo una pregunta abierta a la vez (por qid estable)
 if "edit_qid" not in st.session_state:
     st.session_state.edit_qid = None
 
+with st.expander("✏️ Textos fijos (editables)", expanded=False):
+    st.caption("Edita textos que NO son preguntas individuales (por ejemplo, el encabezado interno de la Matriz 9).")
+    st.session_state.textos_fijos["matriz_9_label"] = st.text_input(
+        "Texto del encabezado de la Matriz 9",
+        value=st.session_state.textos_fijos.get("matriz_9_label", ""),
+        key="txt_matriz9"
+    )
+
 # ------------------------------------------------------------------------------------------
-# Catálogo manual por lotes: Cantón → Distrito
+# Catálogo manual por lotes: Cantón → Distritos
 # ------------------------------------------------------------------------------------------
 if "choices_ext_rows" not in st.session_state:
     st.session_state.choices_ext_rows = []
@@ -169,6 +197,10 @@ def _append_choice_unique(row: Dict):
         st.session_state.choices_ext_rows.append(row)
 
 def _asegurar_placeholders_catalogo():
+    """
+    Survey123 exige que existan list_canton/list_distrito en choices si se usan en survey.
+    Esto garantiza placeholders aun cuando el usuario NO agregue lotes.
+    """
     st.session_state.choices_extra_cols.update({"canton_key", "any"})
     _append_choice_unique({"list_name": "list_canton", "name": "__pick_canton__", "label": "— escoja un cantón —"})
     _append_choice_unique({"list_name": "list_distrito", "name": "__pick_distrito__", "label": "— escoja un cantón —", "any": "1"})
@@ -269,7 +301,7 @@ with col_logo:
 
 with col_txt:
     st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
-    delegacion = st.text_input("Nombre del lugar / Delegación", value="San Carlos Oeste", key="delegacion_txt")
+    delegacion = st.text_input("Nombre del lugar / Delegación", value="Alajuela Norte", key="delegacion_txt")
     logo_media_name = st.text_input(
         "Nombre de archivo para `media::image`",
         value=st.session_state.get("_logo_name", "001.png"),
@@ -280,25 +312,15 @@ with col_txt:
     st.markdown(f"<h5 style='text-align:center;margin:4px 0'>📋 {titulo_compuesto}</h5>", unsafe_allow_html=True)
 
 # ------------------------------------------------------------------------------------------
-# Textos base (solo lo necesario)
+# Textos base (Comercio)
 # ------------------------------------------------------------------------------------------
-INTRO_COMERCIO_P1 = (
-    "El presente formato corresponde a la Encuesta de Percepción de Comercio 2026, diseñada para "
-    "recopilar información clave sobre seguridad ciudadana, convivencia y factores de riesgo en los "
-    "cantones del territorio nacional. Este documento se remite para su revisión y validación por parte "
-    "de las direcciones, departamentos u oficinas con competencia técnica en cada uno de los apartados, "
-    "con el fin de asegurar su coherencia metodológica, normativa y operativa con los lineamientos "
-    "institucionales vigentes. Las observaciones recibidas permitirán fortalecer el instrumento antes "
-    "de su aplicación en territorio."
-)
-
-INTRO_DEMOGRAFICOS_COMERCIO = (
-    "Con el fin de hacer más segura la zona comercial de este distrito, deseamos concentrarnos en los "
-    "problemas de seguridad más importantes que afectan a los negocios. Queremos trabajar en conjunto con "
-    "el gobierno local, otras instituciones y las personas comerciantes para reducir los delitos y riesgos "
-    "que afectan la actividad comercial.\n\n"
-    "Es importante recordarle que la información que usted nos proporcione es confidencial y se utilizará "
-    "únicamente para mejorar la seguridad en esta zona comercial."
+INTRO_COMERCIO = (
+    "El presente formato corresponde a la Encuesta de Percepción de Comercio 2026, diseñada para recopilar "
+    "información clave sobre seguridad ciudadana, convivencia y factores de riesgo en los cantones del territorio "
+    "nacional. Este documento se remite para su revisión y validación por parte de las direcciones, departamentos u "
+    "oficinas con competencia técnica en cada uno de los apartados, con el fin de asegurar su coherencia metodológica, "
+    "normativa y operativa con los lineamientos institucionales vigentes. Las observaciones recibidas permitirán "
+    "fortalecer el instrumento antes de su aplicación en territorio."
 )
 
 CONSENTIMIENTO_TITULO = "Consentimiento Informado para la Participación en la Encuesta"
@@ -320,12 +342,37 @@ CONSENTIMIENTO_BLOQUES = [
     "Al continuar con la encuesta, usted manifiesta haber leído y comprendido la información anterior y otorga su consentimiento informado para participar."
 ]
 
+INTRO_DEMOGRAFICOS_COMERCIO = (
+    "Con el fin de hacer más segura la zona comercial de este distrito, deseamos concentrarnos en los problemas de "
+    "seguridad más importantes que afectan a los negocios. Queremos trabajar en conjunto con el gobierno local, otras "
+    "instituciones y las personas comerciantes para reducir los delitos y riesgos que afectan la actividad comercial.\n\n"
+    "Es importante recordarle que la información que usted nos proporcione es confidencial y se utilizará únicamente "
+    "para mejorar la seguridad en esta zona comercial."
+)
+
+INTRO_PERCEPCION_COMERCIO = (
+    "En esta sección le preguntaremos sobre cómo percibe la seguridad en el entorno donde desarrolla su actividad comercial. "
+    "Las siguientes preguntas buscan conocer su opinión y experiencia sobre la seguridad en el lugar donde se ubica su negocio, "
+    "así como en los espacios cercanos que forman parte de la dinámica comercial.\n\n"
+    "Nos interesa saber cómo siente y cómo observa la seguridad en la zona comercial, cuáles situaciones generan mayor o menor "
+    "tranquilidad y si considera que la situación ha mejorado, empeorado o se mantiene igual. Sus respuestas nos ayudarán a "
+    "identificar qué factores generan preocupación en el comercio y cómo se vive la seguridad desde la actividad económica.\n\n"
+    "Esta información se utilizará para apoyar el análisis preventivo del entorno comercial y orientar acciones de mejora y prevención. "
+    "No hay respuestas correctas o incorrectas. Le pedimos responder con sinceridad, según su experiencia y percepción personal."
+)
+
 # ------------------------------------------------------------------------------------------
-# Seed (solo consentimiento + demográficos + tipo de local)
+# Precarga de preguntas (seed) — SOLO: Consentimiento + Demográficos + Percepción Comercio
 # ------------------------------------------------------------------------------------------
 if "seed_cargado" not in st.session_state:
+    v_muy_inseguro = slugify_name("Muy inseguro")
+    v_inseguro = slugify_name("Inseguro")
+
+    LISTA_MATRIZ_SEG = "list_matriz_seguridad"
+    SLUG_SI = slugify_name("Sí")
+
     seed = [
-        # Consentimiento
+        # ---------------- Consentimiento (pregunta) ----------------
         {"tipo_ui": "Selección única",
          "label": "¿Acepta participar en esta encuesta?",
          "name": "consentimiento",
@@ -335,7 +382,7 @@ if "seed_cargado" not in st.session_state:
          "choice_filter": None,
          "relevant": None},
 
-        # Demográficos (igual a tu base)
+        # ---------------- I. DATOS DEMOGRÁFICOS ----------------
         {"tipo_ui": "Selección única", "label": "1. Cantón:", "name": "canton", "required": True,
          "opciones": [], "appearance": None, "choice_filter": None, "relevant": None},
 
@@ -372,7 +419,7 @@ if "seed_cargado" not in st.session_state:
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
 
-        # ✅ NUEVO: Tipo de local comercial (como imagen)
+        # 6 Tipo de local comercial (imagen)
         {"tipo_ui": "Selección única",
          "label": "6. Tipo de local comercial",
          "name": "tipo_local_comercial",
@@ -394,23 +441,141 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Texto (corto)",
-         "label": "Otro: (especifique)",
-         "name": "tipo_local_otro",
+         "label": "Indique cuál es ese otro tipo de local comercial:",
+         "name": "tipo_local_comercial_otro",
          "required": True,
          "opciones": [],
          "appearance": None,
          "choice_filter": None,
          "relevant": f"${{tipo_local_comercial}}='{slugify_name('Otro')}'"},
+
+        # ---------------- II. PERCEPCIÓN CIUDADANA DE SEGURIDAD EN EL COMERCIO ----------------
+        {"tipo_ui": "Selección única",
+         "label": "7. ¿Qué tan seguro percibe usted el entorno en su local comercial?",
+         "name": "percep_seg_local",
+         "required": True,
+         "opciones": ["Muy inseguro", "Inseguro", "Ni seguro ni inseguro", "Seguro", "Muy seguro"],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "7.1. Indique por qué considera inseguro el entorno del local comercial (Marque todos los que apliquen):",
+         "name": "motivos_inseg_local",
+         "required": True,
+         "opciones": [
+             "Venta de drogas",
+             "Consumo de drogas",
+             "Consumo de alcohol en vía pública",
+             "Riñas o peleas",
+             "Asaltos",
+             "Robos o tachas",
+             "Extorsiones o amenazas",
+             "Daños a la propiedad",
+             "Vandalismo",
+             "Ventas informales desordenadas",
+             "Presencia de personas en situación de calle que influye en su percepción de seguridad",
+             "Presencia de personas en situación de ocio (sin actividad laboral o educativa)",
+             "Intentos de cobro ilegal o exigencias indebidas a comercios",
+             "Otro",
+         ],
+         "appearance": "columns",
+         "choice_filter": None,
+         "relevant": xlsform_or_expr([
+             f"${{percep_seg_local}}='{v_muy_inseguro}'",
+             f"${{percep_seg_local}}='{v_inseguro}'"
+         ])},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "Indique cuál es ese otro motivo:",
+         "name": "motivos_inseg_local_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": f"selected(${{motivos_inseg_local}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección única",
+         "label": "8. ¿En comparación con los 12 meses anteriores, cómo percibe que ha cambiado la seguridad en los alrededores del lugar comercial?",
+         "name": "cambio_seguridad_12m_comercio",
+         "required": True,
+         "opciones": [
+             "Mucho menos seguro (1)",
+             "Menos seguro (2)",
+             "Se mantiene igual (3)",
+             "Más seguro (4)",
+             "Mucho más seguro (5)",
+         ],
+         "appearance": "horizontal", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "8.1. Indique por qué (explique brevemente la razón de su respuesta anterior):",
+         "name": "motivo_cambio_12m_comercio",
+         "required": True,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": "string-length(${cambio_seguridad_12m_comercio})>0"},
+
+        # 9 MATRIZ alrededor del comercio (table-list)
+        {"tipo_ui": "Selección única", "label": "Afuera del comercio", "name": "m9_afuera_comercio",
+         "required": True,
+         "opciones": ["Muy inseguro (1)", "Inseguro (2)", "Ni seguro ni inseguro (3)", "Seguro (4)", "Muy seguro (5)", "No aplica"],
+         "appearance": None, "choice_filter": None, "relevant": None, "list_override": LISTA_MATRIZ_SEG},
+
+        {"tipo_ui": "Selección única", "label": "Pasillos / aceras comerciales", "name": "m9_pasillos_aceras",
+         "required": True,
+         "opciones": ["Muy inseguro (1)", "Inseguro (2)", "Ni seguro ni inseguro (3)", "Seguro (4)", "Muy seguro (5)", "No aplica"],
+         "appearance": None, "choice_filter": None, "relevant": None, "list_override": LISTA_MATRIZ_SEG},
+
+        {"tipo_ui": "Selección única", "label": "Parqueos", "name": "m9_parqueos",
+         "required": True,
+         "opciones": ["Muy inseguro (1)", "Inseguro (2)", "Ni seguro ni inseguro (3)", "Seguro (4)", "Muy seguro (5)", "No aplica"],
+         "appearance": None, "choice_filter": None, "relevant": None, "list_override": LISTA_MATRIZ_SEG},
+
+        {"tipo_ui": "Selección única", "label": "Paradas de bus", "name": "m9_paradas_bus",
+         "required": True,
+         "opciones": ["Muy inseguro (1)", "Inseguro (2)", "Ni seguro ni inseguro (3)", "Seguro (4)", "Muy seguro (5)", "No aplica"],
+         "appearance": None, "choice_filter": None, "relevant": None, "list_override": LISTA_MATRIZ_SEG},
+
+        {"tipo_ui": "Selección única", "label": "Calles cercanas", "name": "m9_calles_cercanas",
+         "required": True,
+         "opciones": ["Muy inseguro (1)", "Inseguro (2)", "Ni seguro ni inseguro (3)", "Seguro (4)", "Muy seguro (5)", "No aplica"],
+         "appearance": None, "choice_filter": None, "relevant": None, "list_override": LISTA_MATRIZ_SEG},
+
+        # 10 foco inseguridad (con "Otro" + texto)
+        {"tipo_ui": "Selección única",
+         "label": "10. Desde su percepción, ¿en qué lugar se concentra principalmente la inseguridad alrededor de su comercio?",
+         "name": "foco_inseguridad_comercio",
+         "required": True,
+         "opciones": [
+             "Zonas residenciales cercanas (calles y barrios)",
+             "Paradas, estaciones y transporte público",
+             "Espacios recreativos (parques y plazas)",
+             "Centros educativos",
+             "Lugares de entretenimiento (bares, discotecas y similares)",
+             "Lugares de interés turístico",
+             "Alrededores inmediatos del comercio",
+             "Zona bancaria",
+             "Otro (especifique)",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro lugar:",
+         "name": "foco_inseguridad_comercio_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"${{foco_inseguridad_comercio}}='{slugify_name('Otro (especifique)')}'"},
     ]
 
     st.session_state.preguntas = [ensure_qid(q) for q in seed]
     st.session_state.seed_cargado = True
 
-# Asegurar qid si recarga
+# Asegurar qid si se recarga
 st.session_state.preguntas = [ensure_qid(q) for q in st.session_state.preguntas]
 
 # ------------------------------------------------------------------------------------------
-# Sidebar: Metadatos + Export/Import JSON
+# Sidebar: Metadatos + Exportar/Importar proyecto
 # ------------------------------------------------------------------------------------------
 with st.sidebar:
     st.header("⚙️ Configuración")
@@ -437,6 +602,7 @@ with st.sidebar:
             "reglas_finalizar": st.session_state.reglas_finalizar,
             "choices_ext_rows": st.session_state.choices_ext_rows,
             "choices_extra_cols": list(st.session_state.choices_extra_cols),
+            "textos_fijos": st.session_state.textos_fijos,
         }
         jbuf = BytesIO(json.dumps(proj, ensure_ascii=False, indent=2).encode("utf-8"))
         st.download_button(
@@ -460,6 +626,7 @@ with st.sidebar:
             st.session_state.reglas_finalizar = list(data.get("reglas_finalizar", []))
             st.session_state.choices_ext_rows = list(data.get("choices_ext_rows", []))
             st.session_state.choices_extra_cols = set(data.get("choices_extra_cols", []))
+            st.session_state.textos_fijos = dict(data.get("textos_fijos", st.session_state.textos_fijos))
 
             st.session_state.edit_qid = None
             _asegurar_placeholders_catalogo()
@@ -468,7 +635,7 @@ with st.sidebar:
             st.error(f"No se pudo importar el JSON: {e}")
 
 # ------------------------------------------------------------------------------------------
-# Constructor: agregar preguntas nuevas (si querés)
+# Constructor: Agregar nuevas preguntas
 # ------------------------------------------------------------------------------------------
 st.subheader("📝 Diseña tus preguntas")
 
@@ -514,7 +681,7 @@ if add:
         _rerun()
 
 # ------------------------------------------------------------------------------------------
-# Lista / Ordenado / Edición — por qid estable
+# Lista / Ordenado / Edición — editor por qid estable
 # ------------------------------------------------------------------------------------------
 st.subheader("📚 Preguntas (ordénalas y edítalas)")
 
@@ -536,6 +703,8 @@ else:
                 meta += f"  •  choice_filter: `{q['choice_filter']}`"
             if q.get("relevant"):
                 meta += f"  •  relevant: `{q['relevant']}`"
+            if q.get("list_override"):
+                meta += f"  •  list_override: `{q['list_override']}`"
             c1.caption(meta)
 
             if q["tipo_ui"] in ("Selección única", "Selección múltiple"):
@@ -612,7 +781,7 @@ else:
                     _rerun()
 
 # ------------------------------------------------------------------------------------------
-# Condicionales (panel) — se mantiene por si luego lo usas
+# Condicionales (panel)
 # ------------------------------------------------------------------------------------------
 st.subheader("🔀 Condicionales (mostrar / finalizar)")
 if not st.session_state.preguntas:
@@ -693,8 +862,11 @@ else:
                     _rerun()
 
 # ------------------------------------------------------------------------------------------
-# Construcción XLSForm (SOLO 3 páginas: Intro + Consentimiento + Demográficos)
+# Construcción XLSForm (Intro + Consentimiento + Páginas)
 # ------------------------------------------------------------------------------------------
+def _get_logo_media_name():
+    return logo_media_name
+
 def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
                       reglas_vis, reglas_fin):
     survey_rows = []
@@ -721,14 +893,42 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         if cond:
             fin_conds.append((r["index_src"], cond))
 
+    def _aplicar_exclusividad_no_observa(row: Dict, q: Dict):
+        if q.get("tipo_ui") != "Selección múltiple":
+            return
+        opts = q.get("opciones") or []
+        if not opts:
+            return
+
+        exclusivas = [o for o in opts if str(o).strip().lower().startswith("no se observa")]
+        if not exclusivas:
+            exclusivas = [o for o in opts if str(o).strip().lower().startswith("no se observan")]
+        if not exclusivas:
+            return
+
+        ex_label = exclusivas[0]
+        ex_slug = slugify_name(ex_label)
+        nm = q["name"]
+        row["constraint"] = f"not(selected(${{{nm}}}, '{ex_slug}') and count-selected(${{{nm}}})>1)"
+        row["constraint_message"] = f"Si selecciona “{ex_label}”, no puede marcar otras opciones."
+
     def add_q(q, idx):
         x_type, default_app, list_name = map_tipo_to_xlsform(q["tipo_ui"], q["name"])
+
+        # list_override (matriz)
+        list_override = q.get("list_override")
+        if list_override and isinstance(x_type, str):
+            if x_type.startswith("select_one "):
+                x_type = f"select_one {list_override}"
+                list_name = list_override
+            elif x_type.startswith("select_multiple "):
+                x_type = f"select_multiple {list_override}"
+                list_name = list_override
 
         rel_manual = q.get("relevant") or None
         rel_panel = build_relevant_expr(vis_by_target.get(q["name"], []))
 
-        # finalización temprana (oculta lo que sigue)
-        nots = [f"not({cond})" for idx_src, cond in fin_conds if idx_src < idx]
+        nots = [xlsform_not(cond) for idx_src, cond in fin_conds if idx_src < idx]
         rel_fin = "(" + " and ".join(nots) + ")" if nots else None
 
         parts = [p for p in [rel_manual, rel_panel, rel_fin] if p]
@@ -737,15 +937,17 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         row = {"type": x_type, "name": q["name"], "label": q["label"]}
         if q.get("required"):
             row["required"] = "yes"
+
         app = q.get("appearance") or default_app
         if app:
             row["appearance"] = app
+
         if q.get("choice_filter"):
             row["choice_filter"] = q["choice_filter"]
         if rel_final:
             row["relevant"] = rel_final
 
-        # placeholders SOLO si NO hay catálogo real
+        # constraints placeholders SOLO si NO hay catálogo real
         if not _hay_catalogo_real():
             if q["name"] == "canton":
                 row["constraint"] = ". != '__pick_canton__'"
@@ -754,9 +956,10 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
                 row["constraint"] = ". != '__pick_distrito__'"
                 row["constraint_message"] = "Seleccione un distrito válido."
 
+        _aplicar_exclusividad_no_observa(row, q)
         survey_rows.append(row)
 
-        # choices (excepto Cantón/Distrito)
+        # choices (excepto canton/distrito)
         if list_name and q["name"] not in {"canton", "distrito"}:
             usados = set()
             for opt_label in (q.get("opciones") or []):
@@ -765,24 +968,22 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
                 usados.add(opt_name)
                 _choices_add_unique({"list_name": list_name, "name": opt_name, "label": str(opt_label)})
 
-    # P1: Intro
+    # Página 1: Intro
     survey_rows += [
         {"type": "begin_group", "name": "p1_intro", "label": "Introducción", "appearance": "field-list"},
-        {"type": "note", "name": "intro_logo", "label": form_title, "media::image": logo_media_name},
-        {"type": "note", "name": "intro_texto", "label": INTRO_COMERCIO_P1},
+        {"type": "note", "name": "intro_logo", "label": form_title, "media::image": _get_logo_media_name()},
+        {"type": "note", "name": "intro_texto", "label": INTRO_COMERCIO},
         {"type": "end_group", "name": "p1_end"},
     ]
 
-    # P2: Consentimiento
+    # Página 2: Consentimiento
+    idx_consent = idx_by_name.get("consentimiento", None)
     survey_rows.append({"type": "begin_group", "name": "p2_consentimiento", "label": "Consentimiento informado", "appearance": "field-list"})
     survey_rows.append({"type": "note", "name": "cons_title", "label": CONSENTIMIENTO_TITULO})
     for i, txt in enumerate(CONSENTIMIENTO_BLOQUES, start=1):
         survey_rows.append({"type": "note", "name": f"cons_b{i:02d}", "label": txt})
-
-    idx_consent = idx_by_name.get("consentimiento", None)
     if idx_consent is not None:
         add_q(preguntas[idx_consent], idx_consent)
-
     survey_rows.append({"type": "end_group", "name": "p2_consentimiento_end"})
 
     # Página final si NO acepta
@@ -793,27 +994,85 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "appearance": "field-list",
         "relevant": f"${{consentimiento}}='{CONSENT_NO}'"
     })
-    survey_rows.append({
-        "type": "note",
-        "name": "fin_no_texto",
-        "label": "Gracias. Al no aceptar participar, la encuesta finaliza en este punto."
-    })
+    survey_rows.append({"type": "note", "name": "fin_no_texto", "label": "Gracias. Al no aceptar participar, la encuesta finaliza en este punto."})
     survey_rows.append({"type": "end_group", "name": "p_fin_no_end"})
 
-    # P3: Demográficos (solo si consentimiento = Sí)
+    # Desde aquí, todo se muestra SOLO si consentimiento = Sí
     rel_si = f"${{consentimiento}}='{CONSENT_SI}'"
-    p_demograficos = {"canton", "distrito", "edad_rango", "genero", "escolaridad", "tipo_local_comercial", "tipo_local_otro"}
 
-    survey_rows.append({"type": "begin_group", "name": "p3_demograficos", "label": "I. DATOS DEMOGRÁFICOS", "appearance": "field-list", "relevant": rel_si})
-    survey_rows.append({"type": "note", "name": "p3_demograficos_intro", "label": INTRO_DEMOGRAFICOS_COMERCIO, "relevant": rel_si})
+    # Páginas por nombres
+    p_demograficos = {"canton", "distrito", "edad_rango", "genero", "escolaridad", "tipo_local_comercial", "tipo_local_comercial_otro"}
+    p_percepcion = {
+        "percep_seg_local",
+        "motivos_inseg_local",
+        "motivos_inseg_local_otro",
+        "cambio_seguridad_12m_comercio",
+        "motivo_cambio_12m_comercio",
+        "m9_afuera_comercio",
+        "m9_pasillos_aceras",
+        "m9_parqueos",
+        "m9_paradas_bus",
+        "m9_calles_cercanas",
+        "foco_inseguridad_comercio",
+        "foco_inseguridad_comercio_otro",
+    }
 
-    for i, qq in enumerate(preguntas):
-        if qq["name"] in p_demograficos:
-            add_q(qq, i)
+    def add_page(group_name, page_label, names_set, intro_note_text: str = None,
+                 group_appearance: str = "field-list", group_relevant: str = None):
+        row = {"type": "begin_group", "name": group_name, "label": page_label, "appearance": group_appearance}
+        if group_relevant:
+            row["relevant"] = group_relevant
+        survey_rows.append(row)
 
-    survey_rows.append({"type": "end_group", "name": "p3_demograficos_end"})
+        if intro_note_text:
+            note = {"type": "note", "name": f"{group_name}_intro", "label": intro_note_text}
+            if group_relevant:
+                note["relevant"] = group_relevant
+            survey_rows.append(note)
 
-    # Choices catálogo (filtrar placeholders si hay catálogo real)
+        for i, qq in enumerate(preguntas):
+            if qq["name"] in names_set:
+                add_q(qq, i)
+
+        survey_rows.append({"type": "end_group", "name": f"{group_name}_end"})
+
+    add_page("p3_demograficos", "I. DATOS DEMOGRÁFICOS", p_demograficos,
+             intro_note_text=INTRO_DEMOGRAFICOS_COMERCIO, group_appearance="field-list", group_relevant=rel_si)
+
+    add_page("p4_percepcion_comercio", "II. PERCEPCIÓN CIUDADANA DE SEGURIDAD EN EL COMERCIO", p_percepcion,
+             intro_note_text=INTRO_PERCEPCION_COMERCIO, group_appearance="field-list", group_relevant=rel_si)
+
+    # Encapsular matriz 9 en table-list (comparten list_override)
+    def _postprocesar_matriz_table_list(df_survey: pd.DataFrame) -> pd.DataFrame:
+        matriz_names = [
+            "m9_afuera_comercio",
+            "m9_pasillos_aceras",
+            "m9_parqueos",
+            "m9_paradas_bus",
+            "m9_calles_cercanas",
+        ]
+        idxs = df_survey.index[df_survey["name"].isin(matriz_names)].tolist()
+        if not idxs:
+            return df_survey
+
+        start = min(idxs)
+        end = max(idxs)
+
+        matriz_label = st.session_state.textos_fijos.get(
+            "matriz_9_label",
+            "9. En términos de seguridad, indique qué tan seguros percibe los siguientes espacios alrededor de su comercio."
+        )
+
+        begin_row = {"type": "begin_group", "name": "matriz_seguridad_9", "label": matriz_label, "appearance": "table-list"}
+        end_row = {"type": "end_group", "name": "matriz_seguridad_9_end"}
+
+        top = df_survey.iloc[:start].copy()
+        mid = df_survey.iloc[start:end + 1].copy()
+        bot = df_survey.iloc[end + 1:].copy()
+
+        return pd.concat([top, pd.DataFrame([begin_row]), mid, pd.DataFrame([end_row]), bot], ignore_index=True)
+
+    # Choices del catálogo (filtrando placeholders si hay catálogo real)
     _asegurar_placeholders_catalogo()
     catalog_rows = [dict(r) for r in st.session_state.choices_ext_rows]
     catalog_rows = _filtrar_placeholders_si_hay_catalogo(catalog_rows)
@@ -831,6 +1090,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
             survey_cols.append(k)
 
     df_survey = pd.DataFrame(survey_rows, columns=survey_cols)
+    df_survey = _postprocesar_matriz_table_list(df_survey)
 
     choices_cols_all = set()
     for r in choices_rows:
@@ -839,7 +1099,6 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     for extra in sorted(choices_cols_all):
         if extra not in base_choice_cols:
             base_choice_cols.append(extra)
-
     df_choices = pd.DataFrame(choices_rows, columns=base_choice_cols) if choices_rows else pd.DataFrame(columns=base_choice_cols)
 
     df_settings = pd.DataFrame([{
@@ -902,7 +1161,8 @@ if st.button("🧮 Construir XLSForm", use_container_width=True, disabled=not st
             c2.markdown("**Hoja: choices**");  c2.dataframe(df_choices, use_container_width=True, hide_index=True)
             c3.markdown("**Hoja: settings**"); c3.dataframe(df_settings, use_container_width=True, hide_index=True)
 
-            nombre_archivo = slugify_name(form_title) + "_xlsform.xlsx"
+            # ✅ FIX nombre de archivo: usa delegación (lo que escribís arriba)
+            nombre_archivo = f"encuesta_comercio_{slugify_name(delegacion.strip() or 'delegacion')}_xlsform.xlsx"
             descargar_excel_xlsform(df_survey, df_choices, df_settings, nombre_archivo)
 
             if st.session_state.get("_logo_bytes"):
@@ -917,4 +1177,3 @@ if st.button("🧮 Construir XLSForm", use_container_width=True, disabled=not st
             st.info("Publica en Survey123 Connect: crea encuesta desde archivo, copia el logo a `media/` y publica.")
     except Exception as e:
         st.error(f"Ocurrió un error al generar el XLSForm: {e}")
-
