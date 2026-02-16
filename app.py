@@ -1,4 +1,4 @@
-# ================================ PARTE 1 / 6 ============================================
+# ================================ PARTE 1 / 5 ============================================
 # -*- coding: utf-8 -*-
 # ==========================================================================================
 # App: Encuesta COMERCIO → XLSForm para ArcGIS Survey123 (versión extendida)
@@ -17,14 +17,17 @@
 # - FIX: Opciones "No se observa / No se observan ..." en select_multiple son EXCLUSIVAS
 # - FIX: Al editar preguntas/opciones, los cambios SIEMPRE se reflejan (qid estable)
 #
-# ✅ ESTA VERSIÓN (LIMPIA) TRAE (hasta aquí):
+# ✅ ESTA VERSIÓN (5 PARTES) INCLUYE:
 #   - P1 Intro Comercio 2026
 #   - P2 Consentimiento + Finalización si NO
 #   - P3 Datos demográficos + texto comercio + Q6 Tipo local comercial
 #   - P4 II. Percepción Comercio (7–10 + Matriz 9)
 #   - P5 III. Riesgos (11–16)
-#   - (En PARTES 2..6 agregamos: Delitos 17–21, Victimización 22–23.1 (incluye 22.1 por bloques A–D),
-#     Propuestas 24–25, Confianza Policial 26–31 y la lógica "Otro" correcta en cada bloque)
+#   - P6 Delitos (17–21)
+#   - P7 Victimización (22–23.1) (incluye 22.1 por bloques A–D)
+#   - P8 Propuestas (24–25)
+#   - P9 Confianza Policial (26–31)
+#   - ✅ P10 Información Adicional y Contacto Voluntario (32–34)  ← NUEVO
 # ==========================================================================================
 
 import re
@@ -380,7 +383,6 @@ INTRO_RIESGOS_COMERCIO = (
     "No existen respuestas correctas o incorrectas. Le pedimos responder con sinceridad, de acuerdo con lo que ha visto o vivido en su entorno comercial."
 )
 
-# (Se usan en PARTES 2..6)
 INTRO_DELITOS_COMERCIO = (
     "A continuación, se presenta una lista de delitos para que indique aquellos que, según su conocimiento u observación, considera que se presentan "
     "en la zona donde desarrolla su actividad comercial. La información recopilada tiene fines de análisis preventivo y territorial y no constituye "
@@ -400,6 +402,11 @@ INTRO_PROPUESTAS_COMERCIO = (
 
 INTRO_CONFIANZA_POLICIAL = (
     "A continuación, se presentará una serie de preguntas relacionadas con su percepción y confianza en la Fuerza Pública que opera en el entorno del local comercial."
+)
+
+INTRO_INFO_ADICIONAL_CONTACTO = (
+    "Esta sección final permite, de forma voluntaria, aportar información adicional que considere pertinente y, si lo desea, dejar un medio de contacto "
+    "para continuar colaborando de manera confidencial con Fuerza Pública. La información suministrada será tratada con confidencialidad."
 )
 
 # ------------------------------------------------------------------------------------------
@@ -461,15 +468,16 @@ with st.sidebar:
         except Exception as e:
             st.error(f"No se pudo importar el JSON: {e}")
 
-# ============================ FIN PARTE 1 / 6 ============================================
-# ================================ PARTE 2 / 6 ============================================
-# (Continuación exacta de tu versión PERFECTA — sin “varas extrañas”)
+# ============================ FIN PARTE 1 / 5 ============================================
+# ================================ PARTE 2 / 5 ============================================
+# (Continuación exacta)
 # Aquí agregamos:
-# - Precarga (seed) hasta Riesgos (11–16) + Delitos (17–21) con sus opciones
-# - Mantiene qid estable, slug, y lógica relevant para “Otro” (texto solo si marca Otro)
+# ✅ Precarga (seed) COMPLETA de preguntas (hasta 34)
+# ✅ Incluye la NUEVA última página: Información Adicional y Contacto Voluntario (32–34)
+# ✅ Mantiene qid estable, slugify, y relevant correcto para “Otro” y para 32.1
 
 # ------------------------------------------------------------------------------------------
-# Precarga limpia de preguntas (seed) — COMERCIO
+# Precarga limpia de preguntas (seed) — COMERCIO (1..34)
 # ------------------------------------------------------------------------------------------
 if "seed_cargado" not in st.session_state:
     v_muy_inseguro = slugify_name("Muy inseguro")
@@ -800,7 +808,7 @@ if "seed_cargado" not in st.session_state:
 
         {"tipo_ui": "Selección múltiple",
          "label": "18. Según su conocimiento u observación, ¿de qué forma se presenta la venta de drogas en los alrededores de local comercial?",
-         "name": "venta_drogas_modalidad",
+         "name": "venta_drogas_forma",
          "required": True,
          "opciones": [
              "En espacios cerrados (casas, edificaciones u otros inmuebles)",
@@ -813,15 +821,15 @@ if "seed_cargado" not in st.session_state:
 
         {"tipo_ui": "Texto (corto)",
          "label": "Indique cuál es esa otra forma:",
-         "name": "venta_drogas_modalidad_otro",
+         "name": "venta_drogas_forma_otro",
          "required": True,
          "opciones": [],
          "appearance": None, "choice_filter": None,
-         "relevant": f"selected(${{venta_drogas_modalidad}}, '{slugify_name('Otro')}')"},
+         "relevant": f"selected(${{venta_drogas_forma}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
          "label": "19. Asaltos:",
-         "name": "asaltos_observados",
+         "name": "asaltos_tipologia",
          "required": True,
          "opciones": [
              "Asalto a personas",
@@ -834,15 +842,15 @@ if "seed_cargado" not in st.session_state:
 
         {"tipo_ui": "Texto (corto)",
          "label": "Indique cuál es ese otro tipo de asalto:",
-         "name": "asaltos_observados_otro",
+         "name": "asaltos_tipologia_otro",
          "required": True,
          "opciones": [],
          "appearance": None, "choice_filter": None,
-         "relevant": f"selected(${{asaltos_observados}}, '{slugify_name('Otro')}')"},
+         "relevant": f"selected(${{asaltos_tipologia}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
          "label": "20. Estafas que afectan al comercio",
-         "name": "estafas_observadas",
+         "name": "estafas_tipologia",
          "required": True,
          "opciones": [
              "Billetes falsos",
@@ -859,15 +867,15 @@ if "seed_cargado" not in st.session_state:
 
         {"tipo_ui": "Texto (corto)",
          "label": "Indique cuál es esa otra estafa:",
-         "name": "estafas_observadas_otro",
+         "name": "estafas_tipologia_otro",
          "required": True,
          "opciones": [],
          "appearance": None, "choice_filter": None,
-         "relevant": f"selected(${{estafas_observadas}}, '{slugify_name('Otro')}')"},
+         "relevant": f"selected(${{estafas_tipologia}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
          "label": "21. Robos (Sustracción mediante la utilización de la fuerza)",
-         "name": "robos_observados",
+         "name": "robos_tipologia",
          "required": True,
          "opciones": [
              "Robo a comercios",
@@ -876,9 +884,351 @@ if "seed_cargado" not in st.session_state:
              "Robo de vehículos completos",
              "Robo a vehículos (tacha o sustracción de partes)",
              "Robo de cable",
+             "Otro",
              "No se observan robos",
          ],
          "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro robo:",
+         "name": "robos_tipologia_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{robos_tipologia}}, '{slugify_name('Otro')}')"},
+
+        # ---------------- VICTIMIZACIÓN (22–23.1) ----------------
+        {"tipo_ui": "Selección única",
+         "label": "22. Durante los últimos 12 meses, ¿su local comercial fue afectado por algún delito?",
+         "name": "victima_12m",
+         "required": True,
+         "opciones": ["No", "Sí, y denuncié", "Sí, pero no denuncié."],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        # 22.1 por BLOQUES A/B/C/D (cada bloque es su select_multiple + Otro→texto)
+        {"tipo_ui": "Selección múltiple",
+         "label": "A. Robo y Asalto (Violencia y Fuerza)",
+         "name": "victima_22_1_a",
+         "required": True,
+         "opciones": [
+             "Asalto a mano armada (amenaza con arma o uso de violencia) en la calle o espacio público.",
+             "Asalto en el transporte público (bus, taxi, metro, etc.).",
+             "Asalto o robo de su vehículo (coche, motocicleta, etc.).",
+             "Robo de accesorios o partes de su vehículo (espejos, llantas, radio).",
+             "Robo o intento de robo con fuerza a su vivienda (ej. forzar una puerta o ventana).",
+             "Robo o intento de robo con fuerza a su comercio o negocio.",
+             "Otro",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro delito (Bloque A):",
+         "name": "victima_22_1_a_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{victima_22_1_a}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "B. Hurto y Daños (Sin Violencia Directa)",
+         "name": "victima_22_1_b",
+         "required": True,
+         "opciones": [
+             "Hurto de su cartera, bolso o celular (sin que se diera cuenta, por descuido).",
+             "Daños a su propiedad (ej. grafitis, rotura de cristales, destrucción de cercas).",
+             "Compra o venta de artículos robados (receptación)",
+             "Pérdida de artículos (celular, bicicleta, etc.) por descuido.",
+             "Otro",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro delito (Bloque B):",
+         "name": "victima_22_1_b_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{victima_22_1_b}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "C. Fraude y Engaño (Estafas)",
+         "name": "victima_22_1_c",
+         "required": True,
+         "opciones": [
+             "Estafa telefónica (ej. llamadas para pedir dinero o datos personales).",
+             "Estafa o fraude informático (ej. a través de internet, redes sociales o correo electrónico).",
+             "Fraude con tarjetas bancarias (clonación o uso no autorizado).",
+             "Ser víctima de billetes o documentos falsos.",
+             "Otro",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro delito (Bloque C):",
+         "name": "victima_22_1_c_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{victima_22_1_c}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "D. Otros Delitos y Problemas Personales",
+         "name": "victima_22_1_d",
+         "required": True,
+         "opciones": [
+             "Extorsión (intimidación o amenaza para obtener dinero u otro beneficio).",
+             "Maltrato animal (si usted o alguien de su hogar fue testigo o su mascota fue la víctima).",
+             "Acoso o intimidación sexual en un espacio público.",
+             "Algún tipo de delito sexual (abuso, violación).",
+             "Lesiones personales (haber sido herido en una riña o agresión).",
+             "Violencia Intrafamiliar (violencia domestica)",
+             "Otro",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro delito (Bloque D):",
+         "name": "victima_22_1_d_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{victima_22_1_d}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "22.2 En caso de NO haber realizado la denuncia ante el OIJ, indique cuál fue el motivo:",
+         "name": "motivo_no_denuncia",
+         "required": True,
+         "opciones": [
+             "Distancia o dificultad de acceso a oficinas para denunciar",
+             "Miedo a represalias.",
+             "Falta de respuesta o seguimiento en denuncias anteriores",
+             "Complejidad o dificultad para realizar la denuncia (trámites, requisitos, tiempo)",
+             "Desconocimiento de dónde colocar la denuncia (falta de información)",
+             "El Policía me dijo que era mejor no denunciar.",
+             "Falta de tiempo para colocar la denuncia",
+             "Desconfianza en las autoridades o en el proceso de denuncia",
+             "Otro",
+         ],
+         "appearance": None, "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro motivo:",
+         "name": "motivo_no_denuncia_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{motivo_no_denuncia}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección única",
+         "label": "22.3 ¿Tiene conocimiento del horario en el cual se presentó el hecho delictivo que afectó a su local comercial o a personas vinculadas a su actividad comercial?",
+         "name": "horario_hecho_delictivo",
+         "required": True,
+         "opciones": [
+             "00:00 – 02:59 (madrugada)",
+             "03:00 – 05:59 (madrugada)",
+             "06:00 – 08:59 (mañana)",
+             "09:00 – 11:59 (mañana)",
+             "12:00 – 14:59 (mediodía / tarde)",
+             "15:00 – 17:59 (tarde)",
+             "18:00 – 20:59 (noche)",
+             "21:00 – 23:59 (noche)",
+             "Desconocido",
+         ],
+         "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "23. ¿Cuál fue la forma o modo en que ocurrió la situación que afectó a su local comercial?",
+         "name": "modo_ocurrio_hecho",
+         "required": True,
+         "opciones": [
+             "Arma blanca (cuchillo, machete, tijeras).",
+             "Arma de fuego.",
+             "Amenazas",
+             "Arrebato",
+             "Boquete",
+             "Ganzúa (pata de chancho)",
+             "Engaño",
+             "No sé.",
+             "Otro",
+         ],
+         "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro modo:",
+         "name": "modo_ocurrio_hecho_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{modo_ocurrio_hecho}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "23.1 Incidentes de inseguridad asociados a la operación del comercio",
+         "name": "incidentes_operacion_comercio",
+         "required": True,
+         "opciones": [
+             "Riñas o disturbios dentro del local",
+             "Riñas o disturbios en las inmediaciones del comercio",
+             "Agresiones físicas al personal del comercio",
+             "Amenazas verbales al personal",
+             "Ingreso de personas en estado de ebriedad o bajo efectos de drogas que generaron conflictos",
+             "Daños ocasionados por clientes o terceros",
+             "Ninguno de los anteriores",
+             "Otro",
+         ],
+         "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro incidente:",
+         "name": "incidentes_operacion_comercio_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{incidentes_operacion_comercio}}, '{slugify_name('Otro')}')"},
+
+        # ---------------- PROPUESTAS (24–25) ----------------
+        {"tipo_ui": "Selección múltiple",
+         "label": "24. ¿Qué actividad considera que deba realizar la Fuerza Pública para mejorar la seguridad en zona comercial?",
+         "name": "propuesta_fp",
+         "required": True,
+         "opciones": [
+             "Mayor presencia policial y patrullaje",
+             "Acciones disuasivas en puntos conflictivos",
+             "Acciones contra consumo y venta de drogas",
+             "Mejorar el servicio policial de la zona comercial",
+             "Acercamiento comercial",
+             "Actividades de prevención y educación",
+             "Coordinación interinstitucional",
+             "Integridad y credibilidad policial",
+             "Otro",
+             "No indica",
+         ],
+         "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es esa otra actividad (Fuerza Pública):",
+         "name": "propuesta_fp_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{propuesta_fp}}, '{slugify_name('Otro')}')"},
+
+        {"tipo_ui": "Selección múltiple",
+         "label": "25. ¿Qué actividad considera que deba realizar la municipalidad para mejorar la seguridad en zona comercial?",
+         "name": "propuesta_muni",
+         "required": True,
+         "opciones": [
+             "Mantenimiento e iluminación del espacio público en áreas comerciales",
+             "Limpieza, recolección de desechos y ordenamiento urbano",
+             "Instalación de cámaras municipales y vigilancia en puntos comerciales",
+             "Control de ventas informales y ocupación indebida del espacio público",
+             "Regulación del transporte informal y mejora de paradas de bus",
+             "Mejoramiento de aceras, calles y espacios públicos del casco comercial",
+             "Coordinación interinstitucional con Fuerza Pública y otras entidades",
+             "Acercamiento y comunicación directa con las personas comerciantes",
+             "Otro",
+             "No indica",
+         ],
+         "appearance": "columns", "choice_filter": None, "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es esa otra actividad (Municipalidad):",
+         "name": "propuesta_muni_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None, "choice_filter": None,
+         "relevant": f"selected(${{propuesta_muni}}, '{slugify_name('Otro')}')"},
+
+        # ---------------- CONFIANZA POLICIAL (26–31) ----------------
+        {"tipo_ui": "Selección única",
+         "label": "26. ¿Cómo ha sido el servicio policial de Fuerza Pública de Costa Rica en los últimos 24 meses?",
+         "name": "servicio_policial_24m",
+         "required": True,
+         "opciones": ["Mejor servicio", "Igual", "Peor servicio"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Selección única",
+         "label": "27. ¿Conoce usted a los policías de la Fuerza Pública de Costa Rica de su zona comercial?",
+         "name": "conoce_policias_zona",
+         "required": True,
+         "opciones": ["Sí", "No"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Selección única",
+         "label": "28. ¿Conoce el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
+         "name": "conoce_programa_seg_com",
+         "required": True,
+         "opciones": ["Sí", "No"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Selección única",
+         "label": "29. ¿Está inscrito en el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
+         "name": "inscrito_programa_seg_com",
+         "required": True,
+         "opciones": ["Sí", "No"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": f"${{conoce_programa_seg_com}}='{SLUG_SI}'"},
+
+        {"tipo_ui": "Selección única",
+         "label": "30. ¿Le gustaría que se le contacte para formar parte del programa?",
+         "name": "quiere_contacto_programa",
+         "required": True,
+         "opciones": ["Sí", "No"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "31. Si su respuesta es afirmativa, indicar nombre del comercio, correo electrónico y número de teléfono para contactarlo(a)",
+         "name": "datos_contacto_programa",
+         "required": True,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": f"${{quiere_contacto_programa}}='{SLUG_SI}'"},
+
+        # ===================== INFORMACIÓN ADICIONAL Y CONTACTO VOLUNTARIO (32–34) =====================
+        {"tipo_ui": "Selección única",
+         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en su comercio?",
+         "name": "info_persona_grupo_delito",
+         "required": True,
+         "opciones": ["Sí", "No"],
+         "appearance": "horizontal",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "32.1. Si su respuesta es \"SI\", describa aquellas características que pueda aportar tales como nombre de estructura o banda criminal... (nombre de personas, alias, domicilio, vehículos, etc.)",
+         "name": "info_persona_grupo_delito_detalle",
+         "required": True,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": f"${{info_persona_grupo_delito}}='{SLUG_SI}'"},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "33. En el siguiente espacio de forma voluntaria podrá anotar su nombre, teléfono o correo electrónico en el cual desee ser contactado y continuar colaborando de forma confidencial con Fuerza Pública.",
+         "name": "contacto_voluntario",
+         "required": False,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Párrafo (texto largo)",
+         "label": "34. En el siguiente espacio podrá registrar alguna otra información que estime pertinente.",
+         "name": "info_adicional",
+         "required": False,
+         "opciones": [],
+         "appearance": "multiline",
+         "choice_filter": None,
+         "relevant": None},
     ]
 
     st.session_state.preguntas = [ensure_qid(q) for q in seed]
@@ -887,13 +1237,14 @@ if "seed_cargado" not in st.session_state:
 # Asegurar qid también si ya existían preguntas en session_state
 st.session_state.preguntas = [ensure_qid(q) for q in st.session_state.preguntas]
 
-# ============================ FIN PARTE 2 / 6 ============================================
-# ================================ PARTE 3 / 6 ============================================
-# (Continuación exacta de tu versión PERFECTA)
+# ============================ FIN PARTE 2 / 5 ============================================
+# ================================ PARTE 3 / 5 ============================================
+# (Continuación exacta)
 # Aquí va:
-# - Constructor: agregar preguntas
-# - Lista/ordenado/edición por qid estable
-# - Panel de condicionales (mostrar / finalizar)
+# ✅ Constructor: agregar preguntas
+# ✅ Lista/ordenado/edición por qid estable
+# ✅ Panel de condicionales (mostrar / finalizar)
+# ==========================================================================================
 
 # ------------------------------------------------------------------------------------------
 # Constructor: Agregar nuevas preguntas
@@ -1053,12 +1404,18 @@ else:
         names = [q["name"] for q in st.session_state.preguntas]
         labels_by_name = {q["name"]: q["label"] for q in st.session_state.preguntas}
 
-        target = st.selectbox("Pregunta a mostrar (target)", options=names,
-                              format_func=lambda n: f"{n} — {labels_by_name[n]}",
-                              key="vis_target")
-        src = st.selectbox("Depende de (source)", options=names,
-                           format_func=lambda n: f"{n} — {labels_by_name[n]}",
-                           key="vis_src")
+        target = st.selectbox(
+            "Pregunta a mostrar (target)",
+            options=names,
+            format_func=lambda n: f"{n} — {labels_by_name[n]}",
+            key="vis_target"
+        )
+        src = st.selectbox(
+            "Depende de (source)",
+            options=names,
+            format_func=lambda n: f"{n} — {labels_by_name[n]}",
+            key="vis_src"
+        )
         op = st.selectbox("Operador", options=["=", "selected"], key="vis_op")
         src_q = next((qq for qq in st.session_state.preguntas if qq["name"] == src), None)
 
@@ -1093,9 +1450,12 @@ else:
         names = [q["name"] for q in st.session_state.preguntas]
         labels_by_name = {q["name"]: q["label"] for q in st.session_state.preguntas}
 
-        src2 = st.selectbox("Condición basada en", options=names,
-                            format_func=lambda n: f"{n} — {labels_by_name[n]}",
-                            key="final_src")
+        src2 = st.selectbox(
+            "Condición basada en",
+            options=names,
+            format_func=lambda n: f"{n} — {labels_by_name[n]}",
+            key="final_src"
+        )
         op2 = st.selectbox("Operador", options=["=", "selected", "!="], key="final_op")
         src2_q = next((qq for qq in st.session_state.preguntas if qq["name"] == src2), None)
 
@@ -1124,589 +1484,15 @@ else:
                     del st.session_state.reglas_finalizar[i]
                     _rerun()
 
-# ============================ FIN PARTE 3 / 6 ============================================
-# ================================ PARTE 4 / 6 ============================================
-# (Continuación exacta de tu versión PERFECTA)
-# Aquí agregamos:
-# ✅ Extensión del SEED: Delitos (17–21), Victimización (22–23.1), Propuestas (24–25), Confianza Policial (26–31)
-# ✅ Intros de páginas nuevas
-# ✅ Preparación para que 22.1 quede en BLOQUES A/B/C/D con "Otro" → texto SOLO si se marca
-
-# ------------------------------------------------------------------------------------------
-# Intros nuevas (páginas)
-# ------------------------------------------------------------------------------------------
-INTRO_DELITOS_COMERCIO = (
-    "A continuación, se presenta una lista de delitos para que indique aquellos que, según su conocimiento u observación, "
-    "considera que se presentan en la zona donde desarrolla su actividad comercial. La información recopilada tiene fines de "
-    "análisis preventivo y territorial y no constituye una denuncia formal ni la confirmación judicial de hechos delictivos."
-)
-
-INTRO_VICTIMIZACION_COMERCIO = (
-    "A continuación, se presentará una lista de situaciones o hechos para que seleccione aquellos en los que su local comercial, "
-    "o personas vinculadas a su actividad comercial, hayan sido directamente afectados en su zona comercial durante los últimos 12 meses. "
-    "La información recopilada se utiliza con fines de análisis preventivo y no sustituye una denuncia formal."
-)
-
-INTRO_PROPUESTAS_COMERCIO = (
-    "Las siguientes preguntas tienen como objetivo conocer la percepción ciudadana sobre acciones que podrían contribuir a la mejora "
-    "de la seguridad desde el ámbito local e institucional. La información recolectada no constituye una evaluación de la gestión ni implica "
-    "asignación de competencias o responsabilidades."
-)
-
-INTRO_CONFIANZA_POLICIAL_COMERCIO = (
-    "A continuación, se presentará una serie de preguntas relacionadas con su percepción y confianza en la Fuerza Pública que opera "
-    "en el entorno del local comercial."
-)
-
-# ------------------------------------------------------------------------------------------
-# ✅ Extender SEED (sin romper nada): agrega preguntas si NO existen aún
-# ------------------------------------------------------------------------------------------
-def _add_if_missing(q: Dict):
-    nm = q.get("name")
-    if not nm:
-        return
-    exists = any(qq.get("name") == nm for qq in st.session_state.preguntas)
-    if not exists:
-        st.session_state.preguntas.append(ensure_qid(q))
-
-if "seed_extendido_v2" not in st.session_state:
-    SLUG_SI = slugify_name("Sí")
-    SLUG_NO = slugify_name("No")
-
-    # ---------------- DELITOS (17–21) ----------------
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "17. Selección múltiple de delitos:",
-        "name": "delitos_observados_zona",
-        "required": True,
-        "opciones": [
-            "Disturbios en vía pública (riñas o agresiones)",
-            "Daños a la propiedad (viviendas, comercios, vehículos u otros bienes)",
-            "Extorsión (amenazas o intimidación para exigir cobro de dinero u otros beneficios de manera ilegal a comercios)",
-            "Hurto (sustracción de artículos mediante el descuido)",
-            "Compra o venta de artículos robados (receptación)",
-            "Contrabando (licor, cigarrillos, medicinas, ropa, calzado, etc.)",
-            "Maltrato animal",
-            "Otro",
-            "No se observan delitos",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro delito:",
-        "name": "delitos_observados_zona_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{delitos_observados_zona}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "18. Según su conocimiento u observación, ¿de qué forma se presenta la venta de drogas en los alrededores de local comercial?",
-        "name": "venta_drogas_forma",
-        "required": True,
-        "opciones": [
-            "En espacios cerrados (casas, edificaciones u otros inmuebles)",
-            "En vía pública",
-            "De forma ocasional o móvil modalidad exprés (sin punto fijo)",
-            "No se observa venta de drogas",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es esa otra forma:",
-        "name": "venta_drogas_forma_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{venta_drogas_forma}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "19. Asaltos:",
-        "name": "asaltos_tipologia",
-        "required": True,
-        "opciones": [
-            "Asalto a personas",
-            "Asalto a comercios",
-            "Asalto en transporte público",
-            "Otro",
-            "No se observan asaltos",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro tipo de asalto:",
-        "name": "asaltos_tipologia_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{asaltos_tipologia}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "20. Estafas que afectan al comercio",
-        "name": "estafas_tipologia",
-        "required": True,
-        "opciones": [
-            "Billetes falsos",
-            "Documentos falsos",
-            "Estafas con oro",
-            "Estafas con lotería",
-            "Estafas informáticas",
-            "Estafa telefónica",
-            "Estafa con tarjetas",
-            "Otro",
-            "No se observan estafas",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es esa otra estafa:",
-        "name": "estafas_tipologia_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{estafas_tipologia}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "21. Robos (Sustracción mediante la utilización de la fuerza)",
-        "name": "robos_tipologia",
-        "required": True,
-        "opciones": [
-            "Robo a comercios",
-            "Robo a edificaciones (bodegas, locales cerrados)",
-            "Robo a viviendas cercanas al comercio",
-            "Robo de vehículos completos",
-            "Robo a vehículos (tacha o sustracción de partes)",
-            "Robo de cable",
-            "Otro",
-            "No se observan robos",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro robo:",
-        "name": "robos_tipologia_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{robos_tipologia}}, '{slugify_name('Otro')}')"
-    })
-
-    # ---------------- VICTIMIZACIÓN (22–23.1) ----------------
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "22. Durante los últimos 12 meses, ¿su local comercial fue afectado por algún delito?",
-        "name": "victima_12m",
-        "required": True,
-        "opciones": ["No", "Sí, y denuncié", "Sí, pero no denuncié."],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-
-    # 22.1 se arma por BLOQUES A/B/C/D (cada bloque es su select_multiple + Otro→texto)
-    # Nota: el título completo “22.1 ¿Cuál fue el delito...?” se insertará como NOTE dentro de la página.
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "A. Robo y Asalto (Violencia y Fuerza)",
-        "name": "victima_22_1_a",
-        "required": True,
-        "opciones": [
-            "Asalto a mano armada (amenaza con arma o uso de violencia) en la calle o espacio público.",
-            "Asalto en el transporte público (bus, taxi, metro, etc.).",
-            "Asalto o robo de su vehículo (coche, motocicleta, etc.).",
-            "Robo de accesorios o partes de su vehículo (espejos, llantas, radio).",
-            "Robo o intento de robo con fuerza a su vivienda (ej. forzar una puerta o ventana).",
-            "Robo o intento de robo con fuerza a su comercio o negocio.",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro delito (Bloque A):",
-        "name": "victima_22_1_a_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{victima_22_1_a}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "B. Hurto y Daños (Sin Violencia Directa)",
-        "name": "victima_22_1_b",
-        "required": True,
-        "opciones": [
-            "Hurto de su cartera, bolso o celular (sin que se diera cuenta, por descuido).",
-            "Daños a su propiedad (ej. grafitis, rotura de cristales, destrucción de cercas).",
-            "Compra o venta de artículos robados (receptación)",
-            "Pérdida de artículos (celular, bicicleta, etc.) por descuido.",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro delito (Bloque B):",
-        "name": "victima_22_1_b_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{victima_22_1_b}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "C. Fraude y Engaño (Estafas)",
-        "name": "victima_22_1_c",
-        "required": True,
-        "opciones": [
-            "Estafa telefónica (ej. llamadas para pedir dinero o datos personales).",
-            "Estafa o fraude informático (ej. a través de internet, redes sociales o correo electrónico).",
-            "Fraude con tarjetas bancarias (clonación o uso no autorizado).",
-            "Ser víctima de billetes o documentos falsos.",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro delito (Bloque C):",
-        "name": "victima_22_1_c_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{victima_22_1_c}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "D. Otros Delitos y Problemas Personales",
-        "name": "victima_22_1_d",
-        "required": True,
-        "opciones": [
-            "Extorsión (intimidación o amenaza para obtener dinero u otro beneficio).",
-            "Maltrato animal (si usted o alguien de su hogar fue testigo o su mascota fue la víctima).",
-            "Acoso o intimidación sexual en un espacio público.",
-            "Algún tipo de delito sexual (abuso, violación).",
-            "Lesiones personales (haber sido herido en una riña o agresión).",
-            "Violencia Intrafamiliar (violencia domestica)",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro delito (Bloque D):",
-        "name": "victima_22_1_d_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{victima_22_1_d}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "22.2 En caso de NO haber realizado la denuncia ante el OIJ, indique cuál fue el motivo:",
-        "name": "motivo_no_denuncia",
-        "required": True,
-        "opciones": [
-            "Distancia o dificultad de acceso a oficinas para denunciar",
-            "Miedo a represalias.",
-            "Falta de respuesta o seguimiento en denuncias anteriores",
-            "Complejidad o dificultad para realizar la denuncia (trámites, requisitos, tiempo)",
-            "Desconocimiento de dónde colocar la denuncia (falta de información)",
-            "El Policía me dijo que era mejor no denunciar.",
-            "Falta de tiempo para colocar la denuncia",
-            "Desconfianza en las autoridades o en el proceso de denuncia",
-            "Otro",
-        ],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro motivo:",
-        "name": "motivo_no_denuncia_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{motivo_no_denuncia}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "22.3 ¿Tiene conocimiento del horario en el cual se presentó el hecho delictivo que afectó a su local comercial o a personas vinculadas a su actividad comercial?",
-        "name": "horario_hecho_delictivo",
-        "required": True,
-        "opciones": [
-            "00:00 – 02:59 (madrugada)",
-            "03:00 – 05:59 (madrugada)",
-            "06:00 – 08:59 (mañana)",
-            "09:00 – 11:59 (mañana)",
-            "12:00 – 14:59 (mediodía / tarde)",
-            "15:00 – 17:59 (tarde)",
-            "18:00 – 20:59 (noche)",
-            "21:00 – 23:59 (noche)",
-            "Desconocido",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "23. ¿Cuál fue la forma o modo en que ocurrió la situación que afectó a su local comercial?",
-        "name": "modo_ocurrio_hecho",
-        "required": True,
-        "opciones": [
-            "Arma blanca (cuchillo, machete, tijeras).",
-            "Arma de fuego.",
-            "Amenazas",
-            "Arrebato",
-            "Boquete",
-            "Ganzúa (pata de chancho)",
-            "Engaño",
-            "No sé.",
-            "Otro",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro modo:",
-        "name": "modo_ocurrio_hecho_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{modo_ocurrio_hecho}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "23.1 Incidentes de inseguridad asociados a la operación del comercio",
-        "name": "incidentes_operacion_comercio",
-        "required": True,
-        "opciones": [
-            "Riñas o disturbios dentro del local",
-            "Riñas o disturbios en las inmediaciones del comercio",
-            "Agresiones físicas al personal del comercio",
-            "Amenazas verbales al personal",
-            "Ingreso de personas en estado de ebriedad o bajo efectos de drogas que generaron conflictos",
-            "Daños ocasionados por clientes o terceros",
-            "Ninguno de los anteriores",
-            "Otro",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es ese otro incidente:",
-        "name": "incidentes_operacion_comercio_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{incidentes_operacion_comercio}}, '{slugify_name('Otro')}')"
-    })
-
-    # ---------------- PROPUESTAS (24–25) ----------------
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "24. ¿Qué actividad considera que deba realizar la Fuerza Pública para mejorar la seguridad en zona comercial?",
-        "name": "propuesta_fp",
-        "required": True,
-        "opciones": [
-            "Mayor presencia policial y patrullaje",
-            "Acciones disuasivas en puntos conflictivos",
-            "Acciones contra consumo y venta de drogas",
-            "Mejorar el servicio policial de la zona comercial",
-            "Acercamiento comercial",
-            "Actividades de prevención y educación",
-            "Coordinación interinstitucional",
-            "Integridad y credibilidad policial",
-            "Otro",
-            "No indica",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es esa otra actividad (Fuerza Pública):",
-        "name": "propuesta_fp_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{propuesta_fp}}, '{slugify_name('Otro')}')"
-    })
-
-    _add_if_missing({
-        "tipo_ui": "Selección múltiple",
-        "label": "25. ¿Qué actividad considera que deba realizar la municipalidad para mejorar la seguridad en zona comercial?",
-        "name": "propuesta_muni",
-        "required": True,
-        "opciones": [
-            "Mantenimiento e iluminación del espacio público en áreas comerciales",
-            "Limpieza, recolección de desechos y ordenamiento urbano",
-            "Instalación de cámaras municipales y vigilancia en puntos comerciales",
-            "Control de ventas informales y ocupación indebida del espacio público",
-            "Regulación del transporte informal y mejora de paradas de bus",
-            "Mejoramiento de aceras, calles y espacios públicos del casco comercial",
-            "Coordinación interinstitucional con Fuerza Pública y otras entidades",
-            "Acercamiento y comunicación directa con las personas comerciantes",
-            "Otro",
-            "No indica",
-        ],
-        "appearance": "columns",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Texto (corto)",
-        "label": "Indique cuál es esa otra actividad (Municipalidad):",
-        "name": "propuesta_muni_otro",
-        "required": True,
-        "opciones": [],
-        "appearance": None,
-        "choice_filter": None,
-        "relevant": f"selected(${{propuesta_muni}}, '{slugify_name('Otro')}')"
-    })
-
-    # ---------------- CONFIANZA POLICIAL (26–31) ----------------
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "26. ¿Cómo ha sido el servicio policial de Fuerza Pública de Costa Rica en los últimos 24 meses?",
-        "name": "servicio_policial_24m",
-        "required": True,
-        "opciones": ["Mejor servicio", "Igual", "Peor servicio"],
-        "appearance": "horizontal",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "27. ¿Conoce usted a los policías de la Fuerza Pública de Costa Rica de su zona comercial?",
-        "name": "conoce_policias_zona",
-        "required": True,
-        "opciones": ["Sí", "No"],
-        "appearance": "horizontal",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "28. ¿Conoce el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
-        "name": "conoce_programa_seg_com",
-        "required": True,
-        "opciones": ["Sí", "No"],
-        "appearance": "horizontal",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "29. ¿Está inscrito en el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
-        "name": "inscrito_programa_seg_com",
-        "required": True,
-        "opciones": ["Sí", "No"],
-        "appearance": "horizontal",
-        "choice_filter": None,
-        "relevant": f"${{conoce_programa_seg_com}}='{SLUG_SI}'"
-    })
-    _add_if_missing({
-        "tipo_ui": "Selección única",
-        "label": "30. ¿Le gustaría que se le contacte para formar parte del programa?",
-        "name": "quiere_contacto_programa",
-        "required": True,
-        "opciones": ["Sí", "No"],
-        "appearance": "horizontal",
-        "choice_filter": None,
-        "relevant": None
-    })
-    _add_if_missing({
-        "tipo_ui": "Párrafo (texto largo)",
-        "label": "31. Si su respuesta es afirmativa, indicar nombre del comercio, correo electrónico y número de teléfono para contactarlo(a)",
-        "name": "datos_contacto_programa",
-        "required": True,
-        "opciones": [],
-        "appearance": "multiline",
-        "choice_filter": None,
-        "relevant": f"${{quiere_contacto_programa}}='{SLUG_SI}'"
-    })
-
-    st.session_state.seed_extendido_v2 = True
-
-# Asegurar qid en todo (por si se agregó algo)
-st.session_state.preguntas = [ensure_qid(q) for q in st.session_state.preguntas]
-
-# ============================ FIN PARTE 4 / 6 ============================================
-# ================================ PARTE 5 / 6 ============================================
-# (Continuación exacta de TU MISMA VERSIÓN)
-# Aquí SOLO tocamos la función `construir_xlsform()` para:
-# ✅ Crear páginas nuevas: DELITOS / VICTIMIZACIÓN / PROPUESTAS / CONFIANZA
-# ✅ Armar la 22.1 como: NOTE título 22.1 + BLOQUES A/B/C/D (select_multiple)
-# ✅ Lógica 22:
-#    - Si "No"  -> pasa directo a 24 (oculta 22.1, 22.2, 22.3, 23, 23.1)
-#    - Si "Sí, y denuncié" -> muestra 22.1 + 22.3 + 23 + 23.1 (oculta 22.2)
-#    - Si "Sí, pero no denuncié." -> muestra 22.1 + 22.2 + 22.3 + 23 + 23.1
-# ✅ Mantener "Otro" -> texto SOLO si se marca (eso ya lo trae tu relevant)
-#
-# IMPORTANTE:
-# - Pegá esta PARTE sustituyendo/actualizando el BLOQUE de la función `construir_xlsform()`
-#   (desde: `def construir_xlsform(...):` hasta el `return df_survey, df_choices, df_settings`)
-# - Todo lo demás queda IGUAL.
+# ============================ FIN PARTE 3 / 5 ============================================
+# ================================ PARTE 4 / 5 ============================================
+# (Continuación exacta)
+# Aquí SOLO va la función `construir_xlsform()` actualizada para:
+# ✅ Mantener TODAS las páginas existentes
+# ✅ Mantener la lógica de Victimización (22) exactamente como ya estaba
+# ✅ Agregar la ÚLTIMA PÁGINA:
+#    "Información Adicional y Contacto Voluntario" con preguntas 32–34 (y 32.1 con relevant)
+# ==========================================================================================
 
 def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
                       reglas_vis, reglas_fin):
@@ -1741,7 +1527,6 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         if not opts:
             return
 
-        # contempla ambos: "No se observa..." y "No se observan..."
         exclusivas = [o for o in opts if str(o).strip().lower().startswith("no se observa")]
         if not exclusivas:
             exclusivas = [o for o in opts if str(o).strip().lower().startswith("no se observan")]
@@ -1812,7 +1597,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
                 _choices_add_unique({"list_name": list_name, "name": opt_name, "label": str(opt_label)})
 
     # --------------------------------------------------------------------------------------
-    # Página 1: Intro (IGUAL)
+    # Página 1: Intro
     # --------------------------------------------------------------------------------------
     survey_rows += [
         {"type": "begin_group", "name": "p1_intro", "label": "Introducción", "appearance": "field-list"},
@@ -1822,7 +1607,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     ]
 
     # --------------------------------------------------------------------------------------
-    # Página 2: Consentimiento (IGUAL)
+    # Página 2: Consentimiento
     # --------------------------------------------------------------------------------------
     idx_consent = idx_by_name.get("consentimiento", None)
     survey_rows.append({"type": "begin_group", "name": "p2_consentimiento", "label": "Consentimiento informado", "appearance": "field-list"})
@@ -1833,7 +1618,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         add_q(preguntas[idx_consent], idx_consent)
     survey_rows.append({"type": "end_group", "name": "p2_consentimiento_end"})
 
-    # Página final si NO acepta (IGUAL)
+    # Página final si NO acepta
     survey_rows.append({
         "type": "begin_group",
         "name": "p_fin_no",
@@ -1852,7 +1637,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     rel_si = f"${{consentimiento}}='{CONSENT_SI}'"
 
     # --------------------------------------------------------------------------------------
-    # Sets por página (AMPLIADO)
+    # Sets por página
     # --------------------------------------------------------------------------------------
     p_demograficos = {
         "canton", "distrito", "edad_rango", "genero", "escolaridad",
@@ -1900,7 +1685,6 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "robos_tipologia_otro",
     }
 
-    # Victimización (ojo: 22.1 A/B/C/D y sus "otro" + 22.2 + 22.3 + 23 + 23.1)
     p_victimizacion = {
         "victima_12m",
         "victima_22_1_a", "victima_22_1_a_otro",
@@ -1927,8 +1711,16 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "datos_contacto_programa",
     }
 
+    # ✅ NUEVA ÚLTIMA PÁGINA
+    p_info_adicional = {
+        "info_persona_grupo_delito",
+        "info_persona_grupo_delito_detalle",
+        "contacto_voluntario",
+        "info_adicional",
+    }
+
     # --------------------------------------------------------------------------------------
-    # Helpers de páginas
+    # Helper de páginas
     # --------------------------------------------------------------------------------------
     def add_page(group_name, page_label, names_set, intro_note_text: str = None,
                  group_appearance: str = "field-list", group_relevant: str = None,
@@ -1958,7 +1750,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         survey_rows.append({"type": "end_group", "name": f"{group_name}_end"})
 
     # --------------------------------------------------------------------------------------
-    # P3 Demográficos (IGUAL)
+    # P3 Demográficos
     # --------------------------------------------------------------------------------------
     add_page(
         "p3_demograficos",
@@ -1969,7 +1761,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
-    # P4 Percepción (IGUAL)
+    # P4 Percepción
     add_page(
         "p4_percepcion_comercio",
         "II. PERCEPCIÓN CIUDADANA DE SEGURIDAD EN EL COMERCIO",
@@ -1979,7 +1771,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
-    # P5 Riesgos (IGUAL)
+    # P5 Riesgos
     add_page(
         "p5_riesgos_comercio",
         "III. RIESGOS, DELITOS, VICTIMIZACIÓN",
@@ -1989,9 +1781,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
-    # --------------------------------------------------------------------------------------
-    # ✅ NUEVA PÁGINA: DELITOS
-    # --------------------------------------------------------------------------------------
+    # P6 Delitos
     add_page(
         "p6_delitos_comercio",
         "Delitos",
@@ -2002,26 +1792,22 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     )
 
     # --------------------------------------------------------------------------------------
-    # ✅ NUEVA PÁGINA: VICTIMIZACIÓN (con 22.1 estructurado y lógica)
+    # P7 Victimización (con 22.1 en BLOQUES y lógica)
     # --------------------------------------------------------------------------------------
-    # Slugs de 22
     v_no = slugify_name("No")
     v_si_den = slugify_name("Sí, y denuncié")
     v_si_no_den = slugify_name("Sí, pero no denuncié.")
 
-    rel_victima_no = f"${{victima_12m}}='{v_no}'"
     rel_victima_denuncio = f"${{victima_12m}}='{v_si_den}'"
     rel_victima_no_denuncio = f"${{victima_12m}}='{v_si_no_den}'"
     rel_victima_si_cualquiera = xlsform_or_expr([rel_victima_denuncio, rel_victima_no_denuncio])
 
-    # Relevants específicos:
     rel_221 = rel_victima_si_cualquiera
     rel_222 = rel_victima_no_denuncio
     rel_223 = rel_victima_si_cualquiera
-    rel_23  = rel_victima_si_cualquiera
+    rel_23 = rel_victima_si_cualquiera
     rel_231 = rel_victima_si_cualquiera
 
-    # 22.1 TITULO NOTE (tal cual lo pediste, como encabezado de bloque)
     note_221 = {
         "type": "note",
         "name": "victima_22_1_titulo",
@@ -2029,10 +1815,6 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "relevant": rel_221
     }
 
-    # Armamos página Victimización:
-    # - Siempre muestra 22
-    # - Si 22 = Sí (...) => muestra NOTE 22.1 + A/B/C/D + 22.2 (solo no denunció) + 22.3 + 23 + 23.1
-    # - Si 22 = No => NO muestra nada de eso (y pasa a Propuestas)
     add_page(
         "p7_victimizacion_comercio",
         "Victimización",
@@ -2040,18 +1822,15 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         intro_note_text=INTRO_VICTIMIZACION_COMERCIO,
         group_appearance="field-list",
         group_relevant=rel_si,
-        extra_notes=[note_221]  # inserta el título de 22.1
+        extra_notes=[note_221]
     )
 
-    # ✅ Ahora, forzamos relevant en los componentes correctos (sin cambiar tus preguntas)
-    #    (Esto asegura el salto que describiste)
     def _set_relevant_force(qname: str, expr: str):
         for qq in preguntas:
             if qq.get("name") == qname:
                 qq["relevant"] = expr
                 return
 
-    # 22 no tiene relevant (siempre en página)
     _set_relevant_force("victima_22_1_a", rel_221)
     _set_relevant_force("victima_22_1_a_otro", f"{rel_221} and selected(${{victima_22_1_a}}, '{slugify_name('Otro')}')")
 
@@ -2075,9 +1854,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     _set_relevant_force("incidentes_operacion_comercio", rel_231)
     _set_relevant_force("incidentes_operacion_comercio_otro", f"{rel_231} and selected(${{incidentes_operacion_comercio}}, '{slugify_name('Otro')}')")
 
-    # --------------------------------------------------------------------------------------
-    # ✅ NUEVA PÁGINA: PROPUESTAS CIUDADANAS
-    # --------------------------------------------------------------------------------------
+    # P8 Propuestas
     add_page(
         "p8_propuestas_comercio",
         "Propuestas ciudadanas para la mejora de la seguridad",
@@ -2087,9 +1864,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
-    # --------------------------------------------------------------------------------------
-    # ✅ NUEVA PÁGINA: CONFIANZA POLICIAL
-    # --------------------------------------------------------------------------------------
+    # P9 Confianza Policial
     add_page(
         "p9_confianza_policial",
         "Confianza Policial",
@@ -2099,8 +1874,18 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
+    # ✅ P10 Información Adicional y Contacto Voluntario
+    add_page(
+        "p10_info_adicional_contacto",
+        "Información Adicional y Contacto Voluntario",
+        p_info_adicional,
+        intro_note_text=None,
+        group_appearance="field-list",
+        group_relevant=rel_si
+    )
+
     # --------------------------------------------------------------------------------------
-    # Encapsular matriz 9 en table-list (IGUAL)
+    # Encapsular matriz 9 en table-list
     # --------------------------------------------------------------------------------------
     def _postprocesar_matriz_table_list(df_survey: pd.DataFrame) -> pd.DataFrame:
         matriz_names = [
@@ -2137,7 +1922,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         return pd.concat([top, pd.DataFrame([begin_row]), mid, pd.DataFrame([end_row]), bot], ignore_index=True)
 
     # --------------------------------------------------------------------------------------
-    # Choices del catálogo Cantón/Distrito (IGUAL)
+    # Choices del catálogo Cantón/Distrito
     # --------------------------------------------------------------------------------------
     _asegurar_placeholders_catalogo()
     catalog_rows = [dict(r) for r in st.session_state.choices_ext_rows]
@@ -2146,7 +1931,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         _choices_add_unique(r)
 
     # --------------------------------------------------------------------------------------
-    # DataFrames (IGUAL)
+    # DataFrames
     # --------------------------------------------------------------------------------------
     survey_cols_all = set().union(*[r.keys() for r in survey_rows])
     survey_cols = [c for c in [
@@ -2178,14 +1963,14 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
 
     return df_survey, df_choices, df_settings
 
-# ============================ FIN PARTE 5 / 6 ============================================
-# ================================ PARTE 6 / 6 ============================================
+# ============================ FIN PARTE 4 / 5 ============================================
+# ================================ PARTE 5 / 5 ============================================
 # ✅ CONTINUACIÓN EXACTA de tu código (NO CAMBIO nada de lo ya hecho).
 # Esta parte agrega ÚNICAMENTE lo que falta para que TODO funcione:
-# 1) Helper que te falta: _get_logo_media_name()
-# 2) Exportar XLSForm (survey/choices/settings) a Excel + botón de descarga
-# 3) Previsualización (dataframes) antes de exportar
-# 4) Nota: NO toca tu lógica de páginas ni tu 22.1 (ya quedó bien en tu Parte 5)
+# 1) Helper faltante: _get_logo_media_name()
+# 2) ✅ Asegurar que existan las preguntas 32–34 (y 32.1) en el SEED si aún no están
+# 3) Exportar XLSForm (survey/choices/settings) a Excel + botón de descarga
+# 4) Previsualización (dataframes) antes de exportar
 # ==========================================================================================
 
 # ------------------------------------------------------------------------------------------
@@ -2200,6 +1985,75 @@ def _get_logo_media_name():
         return st.session_state.get("_logo_name") or st.session_state.get("logo_media_txt") or "001.png"
     except Exception:
         return "001.png"
+
+# ------------------------------------------------------------------------------------------
+# ✅ Asegurar SEED de la ÚLTIMA PÁGINA: Información Adicional y Contacto Voluntario (32–34)
+# (No rompe nada: solo agrega si NO existe)
+# ------------------------------------------------------------------------------------------
+def _add_if_missing_final(q: Dict):
+    nm = q.get("name")
+    if not nm:
+        return
+    exists = any(qq.get("name") == nm for qq in st.session_state.preguntas)
+    if not exists:
+        st.session_state.preguntas.append(ensure_qid(q))
+
+if "seed_info_adicional_v1" not in st.session_state:
+    SLUG_SI = slugify_name("Sí")
+    SLUG_NO = slugify_name("No")
+
+    # 32
+    _add_if_missing_final({
+        "tipo_ui": "Selección única",
+        "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en su comercio? (Recuerde, su información es confidencial.)",
+        "name": "info_persona_grupo_delito",
+        "required": True,
+        "opciones": ["Sí", "No"],
+        "appearance": "horizontal",
+        "choice_filter": None,
+        "relevant": None
+    })
+
+    # 32.1 (solo si 32 = Sí)
+    _add_if_missing_final({
+        "tipo_ui": "Párrafo (texto largo)",
+        "label": "32.1. Si su respuesta es \"SI\", describa aquellas características que pueda aportar tales como nombre de estructura o banda criminal... (nombre de personas, alias, domicilio, vehículos, etc.)",
+        "name": "info_persona_grupo_delito_detalle",
+        "required": True,
+        "opciones": [],
+        "appearance": "multiline",
+        "choice_filter": None,
+        "relevant": f"${{info_persona_grupo_delito}}='{SLUG_SI}'"
+    })
+
+    # 33
+    _add_if_missing_final({
+        "tipo_ui": "Párrafo (texto largo)",
+        "label": "33. En el siguiente espacio de forma voluntaria podrá anotar su nombre, teléfono o correo electrónico en el cual desee ser contactado y continuar colaborando de forma confidencial con Fuerza Pública.",
+        "name": "contacto_voluntario",
+        "required": False,
+        "opciones": [],
+        "appearance": "multiline",
+        "choice_filter": None,
+        "relevant": None
+    })
+
+    # 34
+    _add_if_missing_final({
+        "tipo_ui": "Párrafo (texto largo)",
+        "label": "34. En el siguiente espacio podrá registrar alguna otra información que estime pertinente.",
+        "name": "info_adicional",
+        "required": False,
+        "opciones": [],
+        "appearance": "multiline",
+        "choice_filter": None,
+        "relevant": None
+    })
+
+    st.session_state.seed_info_adicional_v1 = True
+
+# Asegurar qid en todo
+st.session_state.preguntas = [ensure_qid(q) for q in st.session_state.preguntas]
 
 # ------------------------------------------------------------------------------------------
 # Exportar a XLSForm (Excel) + Vista previa
@@ -2256,6 +2110,4 @@ st.info(
     f"**{_get_logo_media_name()}**) dentro de la carpeta **media/** del proyecto en Survey123 Connect."
 )
 
-# ============================ FIN PARTE 6 / 6 ============================================
-
-
+# ============================ FIN PARTE 5 / 5 ============================================
