@@ -1486,12 +1486,11 @@ else:
 
 # ============================ FIN PARTE 3 / 5 ============================================
 # ================================ PARTE 4 / 5 ============================================
-# (Continuación exacta)
-# Aquí SOLO va la función `construir_xlsform()` actualizada para:
-# ✅ Mantener TODAS las páginas existentes
-# ✅ Mantener la lógica de Victimización (22) exactamente como ya estaba
-# ✅ Agregar la ÚLTIMA PÁGINA:
-#    "Información Adicional y Contacto Voluntario" con preguntas 32–34 (y 32.1 con relevant)
+# ✅ PARTE COMPLETA SOLUCIONADA (NameError FIX)
+# - Esta es la función construir_xlsform() COMPLETA, ya corregida
+# - ✅ No usa nombres inventados tipo INTRO_CONFIANZA_POLICIAL_COMERCIO / COMERCTO
+# - ✅ Usa SIEMPRE: INTRO_CONFIANZA_POLICIAL (que ya existe en tu Parte 1)
+# - ✅ Mantiene tu lógica intacta y agrega la última página "Información Adicional y Contacto Voluntario"
 # ==========================================================================================
 
 def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
@@ -1711,7 +1710,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "datos_contacto_programa",
     }
 
-    # ✅ NUEVA ÚLTIMA PÁGINA
+    # ✅ ÚLTIMA PÁGINA (32–34)
     p_info_adicional = {
         "info_persona_grupo_delito",
         "info_persona_grupo_delito_detalle",
@@ -1794,7 +1793,6 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     # --------------------------------------------------------------------------------------
     # P7 Victimización (con 22.1 en BLOQUES y lógica)
     # --------------------------------------------------------------------------------------
-    v_no = slugify_name("No")
     v_si_den = slugify_name("Sí, y denuncié")
     v_si_no_den = slugify_name("Sí, pero no denuncié.")
 
@@ -1864,12 +1862,12 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         group_relevant=rel_si
     )
 
-    # P9 Confianza Policial
+    # ✅ P9 Confianza Policial (FIX: usa el nombre correcto)
     add_page(
         "p9_confianza_policial",
         "Confianza Policial",
         p_confianza,
-        intro_note_text=INTRO_CONFIANZA_POLICIAL_COMERCIO,
+        intro_note_text=INTRO_CONFIANZA_POLICIAL,  # ✅ AQUÍ ESTÁ EL FIX
         group_appearance="field-list",
         group_relevant=rel_si
     )
@@ -1964,6 +1962,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
     return df_survey, df_choices, df_settings
 
 # ============================ FIN PARTE 4 / 5 ============================================
+
 # ================================ PARTE 5 / 5 ============================================
 # ✅ CONTINUACIÓN EXACTA de tu código (NO CAMBIO nada de lo ya hecho).
 # Esta parte agrega ÚNICAMENTE lo que falta para que TODO funcione:
@@ -2111,3 +2110,4 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
