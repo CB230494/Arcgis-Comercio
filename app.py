@@ -326,22 +326,15 @@ with col_txt:
 # Textos base (Intro / Consentimiento / Intros de páginas)
 # ------------------------------------------------------------------------------------------
 INTRO_COMERCIO = (
-    "El presente formato corresponde a la Encuesta de Percepción de Comercio 2026, diseñada para "
-    "recopilar información clave sobre seguridad ciudadana, convivencia y factores de riesgo en los "
-    "cantones del territorio nacional. Este documento se remite para su revisión y validación por parte "
-    "de las direcciones, departamentos u oficinas con competencia técnica en cada uno de los apartados, "
-    "con el fin de asegurar su coherencia metodológica, normativa y operativa con los lineamientos "
-    "institucionales vigentes. Las observaciones recibidas permitirán fortalecer el instrumento antes "
-    "de su aplicación en territorio."
-)
-
-INTRO_DEMOG_COMERCIO = (
     "Con el fin de hacer más segura la zona comercial de este distrito, deseamos concentrarnos en los "
     "problemas de seguridad más importantes que afectan a los negocios. Queremos trabajar en conjunto con "
     "el gobierno local, otras instituciones y las personas comerciantes para reducir los delitos y riesgos "
     "que afectan la actividad comercial.\n\n"
     "Es importante recordarle que la información que usted nos proporcione es confidencial y se utilizará "
     "únicamente para mejorar la seguridad en esta zona comercial."
+)
+
+INTRO_DEMOG_COMERCIO = (
 )
 
 CONSENTIMIENTO_TITULO = "Consentimiento Informado para la Participación en la Encuesta"
@@ -2110,4 +2103,5 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
