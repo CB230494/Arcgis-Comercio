@@ -1686,6 +1686,7 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "foco_inseguridad_comercio_otro",
     }
 
+    # ✅ CORRECCIÓN ÚNICA: se agrega la pregunta 15 aquí
     p_riesgos = {
         "horarios_inseguridad_comercio",
         "problematicas_zona_comercial",
@@ -1694,6 +1695,11 @@ def construir_xlsform(preguntas, form_title: str, idioma: str, version: str,
         "consumo_drogas_donde_comercio_otro",
         "infra_vial_deficiencias_comercio",
         "infra_vial_deficiencias_comercio_otro",
+
+        # ✅ P15 + Otro
+        "inv_social_necesidades",
+        "inv_social_necesidades_otro",
+
         "inseguridad_transporte_comercio",
         "inseguridad_transporte_comercio_otro",
         "frecuencia_presencia_policial_comercio",
@@ -2138,6 +2144,7 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
 
 
