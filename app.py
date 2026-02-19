@@ -732,6 +732,7 @@ if "seed_cargado" not in st.session_state:
              "Calles en mal estado",
              "Falta de señalización",
              "Falta o deterioro de aceras",
+             "No se observan deficiencias.",
              "Otro",
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
@@ -2107,6 +2108,7 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
 
 
