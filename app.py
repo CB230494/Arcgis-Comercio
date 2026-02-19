@@ -465,12 +465,13 @@ with st.sidebar:
 # ================================ PARTE 2 / 5 ============================================
 # (Continuación exacta)
 # Aquí agregamos:
-# ✅ Precarga (seed) COMPLETA de preguntas (hasta 34)
-# ✅ Incluye la NUEVA última página: Información Adicional y Contacto Voluntario (32–34)
-# ✅ Mantiene qid estable, slugify, y relevant correcto para “Otro” y para 32.1
+# ✅ Precarga (seed) COMPLETA de preguntas (hasta 35)
+# ✅ Incluye la NUEVA pregunta 15 (inversión social) con “Otro” → texto
+# ✅ Incluye la NUEVA última página: Información Adicional y Contacto Voluntario (33–35)
+# ✅ Mantiene qid estable, slugify, y relevant correcto para “Otro” y para 33.1
 
 # ------------------------------------------------------------------------------------------
-# Precarga limpia de preguntas (seed) — COMERCIO (1..34)
+# Precarga limpia de preguntas (seed) — COMERCIO (1..35)
 # ------------------------------------------------------------------------------------------
 if "seed_cargado" not in st.session_state:
     v_muy_inseguro = slugify_name("Muy inseguro")
@@ -668,7 +669,7 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"${{foco_inseguridad_comercio}}='{slugify_name('Otro (especifique)')}'"},
 
-        # ---------------- III. RIESGOS (11–16) ----------------
+        # ---------------- III. RIESGOS (11–17) ----------------
         {"tipo_ui": "Selección múltiple",
          "label": "11. ¿En qué horarios percibe mayor inseguridad en el entorno comercial donde se ubica su comercio?",
          "name": "horarios_inseguridad_comercio",
@@ -745,8 +746,35 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"selected(${{infra_vial_deficiencias_comercio}}, '{slugify_name('Otro')}')"},
 
+        # ✅ NUEVA 15 (Inversión social) + Otro→texto
         {"tipo_ui": "Selección múltiple",
-         "label": "15. Según su conocimiento u observación, indique si ha identificado situaciones de inseguridad asociadas al transporte en los alrededores de su comercio (Marque todas las que correspondan):",
+         "label": "15. Desde su experiencia en el entorno del local comercial, indique cuáles situaciones considera que hacen falta para fortalecer la convivencia y el uso positivo del espacio público cercano (inversión social):",
+         "name": "inv_social_necesidades",
+         "required": True,
+         "opciones": [
+             "Falta de actividades deportivas en la zona",
+             "Falta de actividades recreativas",
+             "Falta de actividades culturales",
+             "Pocas opciones educativas cercanas",
+             "No se observa falta de inversión",
+             "Otro aspecto",
+         ],
+         "appearance": "columns",
+         "choice_filter": None,
+         "relevant": None},
+
+        {"tipo_ui": "Texto (corto)",
+         "label": "Indique cuál es ese otro aspecto que considera importante:",
+         "name": "inv_social_necesidades_otro",
+         "required": True,
+         "opciones": [],
+         "appearance": None,
+         "choice_filter": None,
+         "relevant": f"selected(${{inv_social_necesidades}}, '{slugify_name('Otro aspecto')}')"},
+
+        # (ANTES 15) → ahora 16
+        {"tipo_ui": "Selección múltiple",
+         "label": "16. Según su conocimiento u observación, indique si ha identificado situaciones de inseguridad asociadas al transporte en los alrededores de su comercio (Marque todas las que correspondan):",
          "name": "inseguridad_transporte_comercio",
          "required": True,
          "opciones": [
@@ -767,16 +795,17 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"selected(${{inseguridad_transporte_comercio}}, '{slugify_name('Otro tipo de situación relacionada con el transporte')}')"},
 
+        # (ANTES 16) → ahora 17
         {"tipo_ui": "Selección única",
-         "label": "16. ¿Con qué frecuencia observa presencia policial en el entorno del local comercial?",
+         "label": "17. ¿Con qué frecuencia observa presencia policial en el entorno del local comercial?",
          "name": "frecuencia_presencia_policial_comercio",
          "required": True,
          "opciones": ["Todos los días", "Varias veces por semana", "Una vez por semana", "Casi nunca", "Nunca"],
          "appearance": None, "choice_filter": None, "relevant": None},
 
-        # ===================== DELITOS (17–21) =====================
+        # ===================== DELITOS (18–22) =====================
         {"tipo_ui": "Selección múltiple",
-         "label": "17. Selección múltiple de delitos:",
+         "label": "18. Selección múltiple de delitos:",
          "name": "delitos_observados_zona",
          "required": True,
          "opciones": [
@@ -801,7 +830,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{delitos_observados_zona}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "18. Según su conocimiento u observación, ¿de qué forma se presenta la venta de drogas en los alrededores de local comercial?",
+         "label": "19. Según su conocimiento u observación, ¿de qué forma se presenta la venta de drogas en los alrededores de local comercial?",
          "name": "venta_drogas_forma",
          "required": True,
          "opciones": [
@@ -822,7 +851,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{venta_drogas_forma}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "19. Asaltos:",
+         "label": "20. Asaltos:",
          "name": "asaltos_tipologia",
          "required": True,
          "opciones": [
@@ -843,7 +872,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{asaltos_tipologia}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "20. Estafas que afectan al comercio",
+         "label": "21. Estafas que afectan al comercio",
          "name": "estafas_tipologia",
          "required": True,
          "opciones": [
@@ -868,7 +897,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{estafas_tipologia}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "21. Robos (Sustracción mediante la utilización de la fuerza)",
+         "label": "22. Robos (Sustracción mediante la utilización de la fuerza)",
          "name": "robos_tipologia",
          "required": True,
          "opciones": [
@@ -891,15 +920,15 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"selected(${{robos_tipologia}}, '{slugify_name('Otro')}')"},
 
-        # ---------------- VICTIMIZACIÓN (22–23.1) ----------------
+        # ---------------- VICTIMIZACIÓN (23–24.1) ----------------
         {"tipo_ui": "Selección única",
-         "label": "22. Durante los últimos 12 meses, ¿su local comercial fue afectado por algún delito?",
+         "label": "23. Durante los últimos 12 meses, ¿su local comercial fue afectado por algún delito?",
          "name": "victima_12m",
          "required": True,
          "opciones": ["No", "Sí, y denuncié", "Sí, pero no denuncié."],
          "appearance": None, "choice_filter": None, "relevant": None},
 
-        # 22.1 por BLOQUES A/B/C/D (cada bloque es su select_multiple + Otro→texto)
+        # 23.1 por BLOQUES A/B/C/D (cada bloque es su select_multiple + Otro→texto)
         {"tipo_ui": "Selección múltiple",
          "label": "A. Robo y Asalto (Violencia y Fuerza)",
          "name": "victima_22_1_a",
@@ -993,7 +1022,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{victima_22_1_d}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "22.2 En caso de NO haber realizado la denuncia ante el OIJ, indique cuál fue el motivo:",
+         "label": "23.2 En caso de NO haber realizado la denuncia ante el OIJ, indique cuál fue el motivo:",
          "name": "motivo_no_denuncia",
          "required": True,
          "opciones": [
@@ -1018,7 +1047,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{motivo_no_denuncia}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección única",
-         "label": "22.3 ¿Tiene conocimiento del horario en el cual se presentó el hecho delictivo que afectó a su local comercial o a personas vinculadas a su actividad comercial?",
+         "label": "23.3 ¿Tiene conocimiento del horario en el cual se presentó el hecho delictivo que afectó a su local comercial o a personas vinculadas a su actividad comercial?",
          "name": "horario_hecho_delictivo",
          "required": True,
          "opciones": [
@@ -1035,7 +1064,7 @@ if "seed_cargado" not in st.session_state:
          "appearance": "columns", "choice_filter": None, "relevant": None},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "23. ¿Cuál fue la forma o modo en que ocurrió la situación que afectó a su local comercial?",
+         "label": "24. ¿Cuál fue la forma o modo en que ocurrió la situación que afectó a su local comercial?",
          "name": "modo_ocurrio_hecho",
          "required": True,
          "opciones": [
@@ -1060,7 +1089,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{modo_ocurrio_hecho}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "23.1 Incidentes de inseguridad asociados a la operación del comercio",
+         "label": "24.1 Incidentes de inseguridad asociados a la operación del comercio",
          "name": "incidentes_operacion_comercio",
          "required": True,
          "opciones": [
@@ -1083,9 +1112,9 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"selected(${{incidentes_operacion_comercio}}, '{slugify_name('Otro')}')"},
 
-        # ---------------- PROPUESTAS (24–25) ----------------
+        # ---------------- PROPUESTAS (25–26) ----------------
         {"tipo_ui": "Selección múltiple",
-         "label": "24. ¿Qué actividad considera que deba realizar la Fuerza Pública para mejorar la seguridad en zona comercial?",
+         "label": "25. ¿Qué actividad considera que deba realizar la Fuerza Pública para mejorar la seguridad en zona comercial?",
          "name": "propuesta_fp",
          "required": True,
          "opciones": [
@@ -1111,7 +1140,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"selected(${{propuesta_fp}}, '{slugify_name('Otro')}')"},
 
         {"tipo_ui": "Selección múltiple",
-         "label": "25. ¿Qué actividad considera que deba realizar la municipalidad para mejorar la seguridad en zona comercial?",
+         "label": "26. ¿Qué actividad considera que deba realizar la municipalidad para mejorar la seguridad en zona comercial?",
          "name": "propuesta_muni",
          "required": True,
          "opciones": [
@@ -1136,9 +1165,9 @@ if "seed_cargado" not in st.session_state:
          "appearance": None, "choice_filter": None,
          "relevant": f"selected(${{propuesta_muni}}, '{slugify_name('Otro')}')"},
 
-        # ---------------- CONFIANZA POLICIAL (26–31) ----------------
+        # ---------------- CONFIANZA POLICIAL (27–32) ----------------
         {"tipo_ui": "Selección única",
-         "label": "26. ¿Cómo ha sido el servicio policial de Fuerza Pública de Costa Rica en los últimos 24 meses?",
+         "label": "27. ¿Cómo ha sido el servicio policial de Fuerza Pública de Costa Rica en los últimos 24 meses?",
          "name": "servicio_policial_24m",
          "required": True,
          "opciones": ["Mejor servicio", "Igual", "Peor servicio"],
@@ -1147,7 +1176,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Selección única",
-         "label": "27. ¿Conoce usted a los policías de la Fuerza Pública de Costa Rica de su zona comercial?",
+         "label": "28. ¿Conoce usted a los policías de la Fuerza Pública de Costa Rica de su zona comercial?",
          "name": "conoce_policias_zona",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -1156,7 +1185,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Selección única",
-         "label": "28. ¿Conoce el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
+         "label": "29. ¿Conoce el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
          "name": "conoce_programa_seg_com",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -1165,7 +1194,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Selección única",
-         "label": "29. ¿Está inscrito en el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
+         "label": "30. ¿Está inscrito en el programa de \"Seguridad Comercial\" que imparte Fuerza Pública?",
          "name": "inscrito_programa_seg_com",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -1174,7 +1203,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"${{conoce_programa_seg_com}}='{SLUG_SI}'"},
 
         {"tipo_ui": "Selección única",
-         "label": "30. ¿Le gustaría que se le contacte para formar parte del programa?",
+         "label": "31. ¿Le gustaría que se le contacte para formar parte del programa?",
          "name": "quiere_contacto_programa",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -1183,7 +1212,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Párrafo (texto largo)",
-         "label": "31. Si su respuesta es afirmativa, indicar nombre del comercio, correo electrónico y número de teléfono para contactarlo(a)",
+         "label": "32. Si su respuesta es afirmativa, indicar nombre del comercio, correo electrónico y número de teléfono para contactarlo(a)",
          "name": "datos_contacto_programa",
          "required": True,
          "opciones": [],
@@ -1191,9 +1220,9 @@ if "seed_cargado" not in st.session_state:
          "choice_filter": None,
          "relevant": f"${{quiere_contacto_programa}}='{SLUG_SI}'"},
 
-        # ===================== INFORMACIÓN ADICIONAL Y CONTACTO VOLUNTARIO (32–34) =====================
+        # ===================== INFORMACIÓN ADICIONAL Y CONTACTO VOLUNTARIO (33–35) =====================
         {"tipo_ui": "Selección única",
-         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en la zona comercial?",
+         "label": "33. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en la zona comercial?",
          "name": "info_persona_grupo_delito",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -1202,7 +1231,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Párrafo (texto largo)",
-         "label": "32.1. Si su respuesta es \"SI\", describa aquellas características que pueda aportar tales como nombre de estructura o banda criminal... (nombre de personas, alias, domicilio, vehículos, etc.)",
+         "label": "33.1. Si su respuesta es \"SI\", describa aquellas características que pueda aportar tales como nombre de estructura o banda criminal... (nombre de personas, alias, domicilio, vehículos, etc.)",
          "name": "info_persona_grupo_delito_detalle",
          "required": True,
          "opciones": [],
@@ -1211,7 +1240,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": f"${{info_persona_grupo_delito}}='{SLUG_SI}'"},
 
         {"tipo_ui": "Párrafo (texto largo)",
-         "label": "33. En el siguiente espacio de forma voluntaria podrá anotar su nombre, teléfono o correo electrónico en el cual desee ser contactado y continuar colaborando de forma confidencial con Fuerza Pública.",
+         "label": "34. En el siguiente espacio de forma voluntaria podrá anotar su nombre, teléfono o correo electrónico en el cual desee ser contactado y continuar colaborando de forma confidencial con Fuerza Pública.",
          "name": "contacto_voluntario",
          "required": False,
          "opciones": [],
@@ -1220,7 +1249,7 @@ if "seed_cargado" not in st.session_state:
          "relevant": None},
 
         {"tipo_ui": "Párrafo (texto largo)",
-         "label": "34. En el siguiente espacio podrá registrar alguna otra información que estime pertinente.",
+         "label": "35. En el siguiente espacio podrá registrar alguna otra información que estime pertinente.",
          "name": "info_adicional",
          "required": False,
          "opciones": [],
@@ -1236,6 +1265,7 @@ if "seed_cargado" not in st.session_state:
 st.session_state.preguntas = [ensure_qid(q) for q in st.session_state.preguntas]
 
 # ============================ FIN PARTE 2 / 5 ============================================
+
 # ================================ PARTE 3 / 5 ============================================
 # (Continuación exacta)
 # Aquí va:
@@ -2108,6 +2138,7 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
 
 
