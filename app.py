@@ -910,6 +910,7 @@ if "seed_cargado" not in st.session_state:
              "Robo de accesorios o partes de su vehículo (espejos, llantas, radio).",
              "Robo o intento de robo con fuerza a su vivienda (ej. forzar una puerta o ventana).",
              "Robo o intento de robo con fuerza a su comercio o negocio.",
+             "No aplica.",
              "Otro",
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
@@ -931,6 +932,7 @@ if "seed_cargado" not in st.session_state:
              "Daños a su propiedad (ej. grafitis, rotura de cristales, destrucción de cercas).",
              "Compra o venta de artículos robados (receptación)",
              "Pérdida de artículos (celular, bicicleta, etc.) por descuido.",
+             "No aplica.",
              "Otro",
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
@@ -952,6 +954,7 @@ if "seed_cargado" not in st.session_state:
              "Estafa o fraude informático (ej. a través de internet, redes sociales o correo electrónico).",
              "Fraude con tarjetas bancarias (clonación o uso no autorizado).",
              "Ser víctima de billetes o documentos falsos.",
+             "No aplica.",
              "Otro",
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
@@ -975,6 +978,7 @@ if "seed_cargado" not in st.session_state:
              "Algún tipo de delito sexual (abuso, violación).",
              "Lesiones personales (haber sido herido en una riña o agresión).",
              "Violencia Intrafamiliar (violencia domestica)",
+             "No aplica.",
              "Otro",
          ],
          "appearance": None, "choice_filter": None, "relevant": None},
@@ -1188,7 +1192,7 @@ if "seed_cargado" not in st.session_state:
 
         # ===================== INFORMACIÓN ADICIONAL Y CONTACTO VOLUNTARIO (32–34) =====================
         {"tipo_ui": "Selección única",
-         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en su comercio?",
+         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en su zona comercial?",
          "name": "info_persona_grupo_delito",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -2103,5 +2107,6 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
 
