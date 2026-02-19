@@ -909,7 +909,7 @@ if "seed_cargado" not in st.session_state:
              "Asalto en el transporte público (bus, taxi, metro, etc.).",
              "Asalto o robo de su vehículo (coche, motocicleta, etc.).",
              "Robo de accesorios o partes de su vehículo (espejos, llantas, radio).",
-             "Robo o intento de robo con fuerza a su vivienda (ej. forzar una puerta o ventana).",
+             "Robo o intento de robo con fuerza a su comercio (ej. forzar una puerta o ventana).",
              "Robo o intento de robo con fuerza a su comercio o negocio.",
              "No aplica.",
              "Otro",
@@ -1193,7 +1193,7 @@ if "seed_cargado" not in st.session_state:
 
         # ===================== INFORMACIÓN ADICIONAL Y CONTACTO VOLUNTARIO (32–34) =====================
         {"tipo_ui": "Selección única",
-         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en su zona comercial?",
+         "label": "32. ¿Usted tiene información de alguna persona o grupo que se dedique a realizar algún delito en la zona comercial?",
          "name": "info_persona_grupo_delito",
          "required": True,
          "opciones": ["Sí", "No"],
@@ -2108,6 +2108,7 @@ st.info(
 )
 
 # ============================ FIN PARTE 5 / 5 ============================================
+
 
 
 
